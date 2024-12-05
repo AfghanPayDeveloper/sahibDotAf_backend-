@@ -9,11 +9,10 @@ import connectDB from './config/database.js';
 import routes from './routes/index.js';
 import logger from './config/logger.js';
 
+
+
 dotenv.config();
-
-// Connect to Database
 connectDB();
-
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -39,7 +38,7 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
 app.use(
     cors({
         origin: allowedOrigins,
-        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
         allowedHeaders: ['Authorization', 'Content-Type'],
     })
 );
@@ -77,7 +76,7 @@ const server = app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
 
-// Graceful Shutdown
+
 process.on('SIGTERM', async () => {
     console.log('SIGTERM signal received. Closing server gracefully...');
     server.close(async () => {
