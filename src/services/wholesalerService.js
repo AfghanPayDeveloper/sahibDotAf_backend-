@@ -1,6 +1,6 @@
 import Wholesaler from '../models/Wholesaler.js';
 import fs from 'fs';
-import path from 'path'; 
+import path from 'path';
 
 const getProfile = async (userId) => {
     return await Wholesaler.findOne({ userId });
@@ -13,7 +13,6 @@ const updateProfile = async (userId, data, files, imagesToRemove = []) => {
         return null;
     }
 
-  
     const {
         fullName,
         email,
@@ -34,7 +33,7 @@ const updateProfile = async (userId, data, files, imagesToRemove = []) => {
         description,
     } = data;
 
-
+ 
     wholesaler.fullName = fullName || wholesaler.fullName;
     wholesaler.email = email || wholesaler.email;
     wholesaler.business = business || wholesaler.business;
@@ -44,7 +43,7 @@ const updateProfile = async (userId, data, files, imagesToRemove = []) => {
     wholesaler.whatsapp = whatsapp || wholesaler.whatsapp;
     wholesaler.phone = phone || wholesaler.phone;
 
-
+   
     wholesaler.brandProfile = {
         brandName: brandName || wholesaler.brandProfile?.brandName,
         brandEmail: brandEmail || wholesaler.brandProfile?.brandEmail,
@@ -57,26 +56,23 @@ const updateProfile = async (userId, data, files, imagesToRemove = []) => {
         brandWhatsapp: brandWhatsapp || wholesaler.brandProfile?.brandWhatsapp,
     };
 
-
     wholesaler.brandProfile.images = wholesaler.brandProfile.images || [];
 
-
+   
     if (Array.isArray(imagesToRemove) && imagesToRemove.length > 0) {
-  
-        const imagesToRemoveParsed = imagesToRemove.map(image => JSON.parse(image)[0]);
+        const imagesToRemoveParsed = imagesToRemove.map(image => image); 
 
      
         wholesaler.brandProfile.images = wholesaler.brandProfile.images.filter(image => !imagesToRemoveParsed.includes(image));
 
-    
-        console.log('Images to be removed:', imagesToRemoveParsed);
-        
       
         imagesToRemoveParsed.forEach(imagePath => {
             try {
-                const filePath = path.join(__dirname, 'uploads', imagePath.split('/uploads/')[1]); 
+                const filePath = path.join(__dirname, '../uploads', imagePath.split('/uploads/')[1]);
                 console.log(`Deleting image: ${filePath}`);
-                fs.unlinkSync(filePath); 
+                if (fs.existsSync(filePath)) {
+                    fs.unlinkSync(filePath); 
+                }
             } catch (error) {
                 console.error('Error deleting image:', error);
             }
@@ -90,15 +86,12 @@ const updateProfile = async (userId, data, files, imagesToRemove = []) => {
     if (files['brandProfileImage'] && files['brandProfileImage'][0]) {
         wholesaler.brandProfile.brandProfileImage = `/uploads/${files['brandProfileImage'][0].filename}`;
     }
-
     if (files['brandCertificate'] && files['brandCertificate'][0]) {
         wholesaler.brandProfile.certificate = `/uploads/${files['brandCertificate'][0].filename}`;
     }
 
     if (files['images']) {
-
         const newImages = files['images'] ? files['images'].map(file => `/uploads/${file.filename}`) : [];
-
         wholesaler.brandProfile.images = wholesaler.brandProfile.images.concat(newImages);
     }
 

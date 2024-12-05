@@ -25,6 +25,7 @@ if (!fs.existsSync(uploadsDir)) {
 const authenticateToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
+    console.log(token);
 
     if (!token) {
         return res.status(401).json({ error: 'Unauthorized' });
@@ -64,7 +65,7 @@ const upload = multer({
     limits: { fileSize: 10 * 1024 * 1024 },
 });
 
-// User Profile: Get User Info
+
 router.get('/me', authenticateToken, async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
@@ -84,7 +85,7 @@ router.get('/me', authenticateToken, async (req, res) => {
     }
 });
 
-// User Profile: Update User Info
+
 router.put('/me', authenticateToken, upload.single('profileImage'), async (req, res) => {
     try {
         const updateData = { ...req.body };
@@ -117,7 +118,7 @@ router.put('/me', authenticateToken, upload.single('profileImage'), async (req, 
     }
 });
 
-// Admin & Super Admin Actions: Create a User
+
 router.post('/create', authenticateToken, authorizeRole('superadmin'), async (req, res) => {
     const { fullName, email, password, role } = req.body;
 
@@ -146,7 +147,7 @@ router.post('/create', authenticateToken, authorizeRole('superadmin'), async (re
     }
 });
 
-// Admin Actions: Delete a User
+
 router.delete('/:id', authenticateToken, authorizeRole('admin'), async (req, res) => {
     console.log('Delete request received for user ID:', req.params.id); // Debug log
 
@@ -168,7 +169,7 @@ router.delete('/:id', authenticateToken, authorizeRole('admin'), async (req, res
 });
 
 
-// Admin Actions: Activate a User
+
 router.put('/:id/deactivate', authenticateToken, authorizeRole('admin'), async (req, res) => {
     try {
         const user = await User.findByIdAndUpdate(
@@ -205,18 +206,17 @@ router.put('/:id/activate', authenticateToken, authorizeRole('admin'), async (re
             user
         });
     } catch (error) {
-        console.error('Error activating user:', error.message); // Debug log
+        console.error('Error activating user:', error.message); 
         res.status(500).json({ error: 'An error occurred while activating the user' });
     }
 });
 
-// Super Admin Only: Get All Users
-// Super Admin Only: Get All Users
+
 router.get('/all', authenticateToken, authorizeRole('superadmin'), async (req, res) => {
     try {
         console.log('User ID from token (inside /all):', req.user.id);
 
-        // Exclude Super Admin from the results
+
         const users = await User.find({ role: { $ne: 'superadmin' } });
         res.status(200).json(users);
     } catch (error) {

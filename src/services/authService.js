@@ -42,6 +42,7 @@ export const login = async (email, password) => {
   }
 
   const token = generateToken(user);
+  console.log(token);
 
 
   return {
@@ -68,12 +69,13 @@ export const login = async (email, password) => {
 export const generateToken = (user) => {
   return jwt.sign(
     {
-      id: user._id, 
-      fullName: user.fullName,
-      email: user.email,
-      role: user.role,
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+        category: user.category,  
     },
     process.env.JWT_SECRET,
     { expiresIn: '1h' }
-  );
+);
 };

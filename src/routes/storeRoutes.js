@@ -4,9 +4,9 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
-import { authenticateToken as authenticate, authorizeRole } from '../middleware/auth.js';
-import { getAllWholesalers, getWholesalerProfile, updateWholesalerProfile } from '../controllers/wholesalerController.js';
-import { updateWholesalerValidator } from '../validators/wholesalerValidator.js';
+import { authenticateToken as authenticate } from '../middleware/auth.js';
+import { getstoreProfile, updatestoreProfile } from '../controllers/storeController.js';
+import { updatestoreValidator } from '../validators/storeValidator.js';
 
 dotenv.config();
 
@@ -38,9 +38,7 @@ const upload = multer({
 router.use('/uploads', express.static(uploadsDir));
 
 
-router.get('/me', authenticate, getWholesalerProfile);
-
-router.get('/all', authenticate, authorizeRole('superadmin'), getAllWholesalers);
+router.get('/me', authenticate, getstoreProfile);
 
 router.put(
     '/me', 
@@ -51,8 +49,8 @@ router.put(
         { name: 'brandCertificate', maxCount: 1 },
         { name: 'images', maxCount: 10 }, 
     ]),
-    updateWholesalerValidator, 
-    updateWholesalerProfile 
+    updatestoreValidator, 
+    updatestoreProfile 
 );
 
 export default router;
