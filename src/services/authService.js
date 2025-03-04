@@ -6,31 +6,36 @@ import User from '../models/User.js';
 dotenv.config();
 
 /**
-
- * @param {string} fullName 
- * @param {string} email
- * @param {string} password
- * @param {string} role
- * @param {string|null} category 
- * @returns {Object} 
+ * Signs up a new user.
+ * @param {string} fullName - Full name of the user.
+ * @param {string} email - User's email.
+ * @param {string} password - User's password.
+ * @param {string} role - Role of the user (buyer, seller, superadmin).
+ * @param {string|null} purpose - Purpose field for sellers.
+ * @returns {Object} Saved user object.
  */
-export const signup = async (fullName, email, password, role, category) => {
+export const signup = async (fullName, email, password, role, purpose = null) => {
   const hashedPassword = await bcrypt.hash(password, 10);
-  const user = new User({ fullName, email, password: hashedPassword, role, category });
+  const user = new User({
+    fullName,
+    email,
+    password: hashedPassword,
+    role,
+    purpose: role === 'seller' ? purpose : null, // Include purpose only for sellers
+    isVerified: false, // Ensure users are not verified initially
+  });
   return await user.save();
 };
 
 /**
-
- 
- * @param {string} email 
- * @param {string} password 
- * @returns {Object} 
- * @throws
+ * Logs in an existing user.
+ * @param {string} email - User's email.
+ * @param {string} password - User's password.
+ * @returns {Object} Token and user details.
+ * @throws Will throw an error if authentication fails.
  */
-
 export const login = async (email, password) => {
-  const user = await User.findOne({ email });
+  const user = await User.findOne({ email }).exec(); 
   if (!user) throw new Error('Invalid email or password');
 
   const isPasswordValid = await bcrypt.compare(password, user.password);
@@ -41,9 +46,11 @@ export const login = async (email, password) => {
     throw new Error('Your account is deactivated. Please contact support.');
   }
 
-  const token = generateToken(user);
-  console.log(token);
+  // if (!user.isVerified) {
+  //   throw new Error('Your account is not verified. Please verify your email.');
+  // }
 
+  const token = generateToken(user);
 
   return {
     token,
@@ -52,30 +59,31 @@ export const login = async (email, password) => {
       fullName: user.fullName,
       email: user.email,
       role: user.role,
-      category: user.category,
-      isActive: user.isActive,  
+      purpose: user.purpose, 
+      profileImage: user.profileImage,
+      isActive: user.isActive,
+      isVerified: user.isVerified, 
     },
   };
 };
 
 
-
-
 /**
 
- * @param {Object} user 
- * @returns {string} 
+  @param {Object} user 
+  @returns {string} 
  */
 export const generateToken = (user) => {
   return jwt.sign(
     {
-        id: user._id,
-        fullName: user.fullName,
-        email: user.email,
-        role: user.role,
-        category: user.category,  
+      id: user._id,
+      fullName: user.fullName,
+      email: user.email,
+      role: user.role,
+      purpose: user.purpose,
+      profileImage: user.profileImage,
     },
     process.env.JWT_SECRET,
-    { expiresIn: '1h' }
-);
+    { expiresIn: '24h' }
+  );
 };
