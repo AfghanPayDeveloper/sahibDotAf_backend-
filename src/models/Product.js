@@ -2,10 +2,10 @@ import mongoose from 'mongoose';
 
 const ProductSchema = new mongoose.Schema(
   {
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, 
-    category: { type: String, required: true },
-    subCategory: { type: String },
-    productName: { type: String, required: true },
+    workspaceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Workspace', required: true },
+    categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
+    subcategoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'SubCategory', required: true },
+    productName: {type: String,},
     oldPrice: { type: Number },
     newPrice: { 
       type: Number, 
@@ -17,13 +17,15 @@ const ProductSchema = new mongoose.Schema(
         message: 'New price must be less than old price.',
       }
     },
-    description: { type: String },
+    description: {type: String,},
     mainImage: { type: String },
-    galleryImages: [{ type: String }], 
-    isApproved: { type: Boolean, default: false }, 
+    viewCount: { type: Number, default: 0 },
+    galleryImages: [{ type: String }],
+    isApproved: { type: Boolean, default: false },
+    status: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now },
-  }, 
-  { timestamps: true } 
+  },
+  { timestamps: true }
 );
 
 export default mongoose.model('Product', ProductSchema);
