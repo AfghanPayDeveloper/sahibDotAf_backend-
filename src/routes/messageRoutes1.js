@@ -3,44 +3,44 @@ import Message from '../models/Message.js';
 import multer from 'multer';
 import path from 'path';
 import { authenticateToken } from '../middleware/auth.js';
-import Conversation from '../models/Conversation.js'; // Assuming Conversation model is created
+import Conversation from '../models/Conversation.js'; 
 
 const router = express.Router();
 
-// Set up file upload with multer
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, './uploads'); // Directory to store files
+    cb(null, './uploads'); 
   },
   filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname)); // Unique filename
+    cb(null, Date.now() + path.extname(file.originalname)); 
   },
 });
 
 const upload = multer({ storage });
 
-// Send message (text, media, reactions)
+
 router.post('/send', authenticateToken, upload.single('media'), async (req, res) => {
   try {
     const { sender, receiver, content, mediaType, reactions } = req.body;
     let mediaUrl = null;
 
-    // If there's a media file, upload it and get its URL
+
     if (req.file) {
       mediaUrl = `/uploads/${req.file.filename}`;
     }
 
-    // Validate required fields
+ 
     if (!sender || !receiver || (!content && !mediaUrl)) {
       return res.status(400).json({ error: 'Sender, receiver, and content/media are required' });
     }
 
-    // Check if a conversation exists between sender and receiver
+ 
     let conversation = await Conversation.findOne({
       participants: { $all: [sender, receiver] },
     });
 
-    // If conversation doesn't exist, create a new one
+
     if (!conversation) {
       conversation = new Conversation({
         participants: [sender, receiver],
@@ -55,12 +55,12 @@ router.post('/send', authenticateToken, upload.single('media'), async (req, res)
       media: mediaUrl,
       mediaType: mediaType || 'none',
       reactions: reactions || [],
-      conversationId: conversation._id,  // Associate with conversation
+      conversationId: conversation._id, 
     });
 
     const savedMessage = await newMessage.save();
 
-    // Optionally, update the conversation's lastMessage
+
     conversation.lastMessage = savedMessage._id;
     await conversation.save();
 
@@ -71,13 +71,13 @@ router.post('/send', authenticateToken, upload.single('media'), async (req, res)
   }
 });
 
-// Fetch messages for a specific conversation (protected)
+
 router.get('/conversation/:user1/:user2', authenticateToken, async (req, res) => {
   try {
     const { user1, user2 } = req.params;
     console.log(`Fetching conversation between ${user1} and ${user2}`);
 
-    // Find the conversation between the two users
+
     const conversation = await Conversation.findOne({
       participants: { $all: [user1, user2] },
     });
@@ -86,8 +86,8 @@ router.get('/conversation/:user1/:user2', authenticateToken, async (req, res) =>
       return res.status(404).json({ error: 'Conversation not found' });
     }
 
-    const messages = await Message.find({ conversationId: conversation._id, isDeleted: false }) // Exclude deleted messages
-      .sort({ timestamp: 1 })  // Sort by timestamp to get messages in order of appearance
+    const messages = await Message.find({ conversationId: conversation._id, isDeleted: false })
+      .sort({ timestamp: 1 })  
       .populate('sender', 'fullName email profileImage')
       .populate('receiver', 'fullName email profileImage');
 
@@ -102,7 +102,7 @@ router.get('/conversation/:user1/:user2', authenticateToken, async (req, res) =>
   }
 });
 
-// Mark message as read (protected)
+
 router.put('/markAsRead/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
@@ -115,7 +115,7 @@ router.put('/markAsRead/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// React to a message (protected)
+
 router.put('/react/:messageId', authenticateToken, async (req, res) => {
   try {
     const { messageId } = req.params;
@@ -136,7 +136,7 @@ router.put('/react/:messageId', authenticateToken, async (req, res) => {
   }
 });
 
-// Update message status (sent, delivered, read)
+
 router.put('/updateStatus/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
@@ -154,7 +154,7 @@ router.put('/updateStatus/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Delete a message (mark as deleted, not actually remove it from DB)
+
 router.put('/deleteMessage/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;

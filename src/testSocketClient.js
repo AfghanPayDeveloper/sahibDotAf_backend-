@@ -2,13 +2,13 @@ import { Server } from 'socket.io';
 
 const io = new Server(5000, {
   cors: {
-    origin: 'http://localhost:3000', // Make sure this matches your frontend URL
+    origin: 'http://localhost:3000', 
     methods: ['GET', 'POST'],
     credentials: true,
   },
 });
 
-const onlineUsers = new Map(); // Map to store online users
+const onlineUsers = new Map(); 
 
 io.on('connection', (socket) => {
   console.log(`New socket connection: ${socket.id}`);

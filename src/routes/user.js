@@ -26,7 +26,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-// Get current user profile
+
 router.get('/me', authenticateToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
@@ -37,7 +37,7 @@ router.get('/me', authenticateToken, async (req, res) => {
 
     const userResponse = {
       ...user.toObject(),
-      profileImageUrl: `http://localhost:5000/uploads/profiles/${user.profileImage}`,
+      profileImageUrl: `http://localhost:8080/uploads/profiles/${user.profileImage}`,
     };
 
     res.json(userResponse);
@@ -98,7 +98,7 @@ router.put('/me', authenticateToken, upload.single('profileImage'), async (req, 
 
     res.json({
       ...updatedUser.toObject(),
-      profileImageUrl: `http://localhost:5000/uploads/profiles/${updatedUser.profileImage}`,
+      profileImageUrl: `http://localhost:8080/uploads/profiles/${updatedUser.profileImage}`,
     });
   } catch (error) {
     if (req.file) {

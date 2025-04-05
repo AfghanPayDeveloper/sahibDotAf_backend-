@@ -302,10 +302,10 @@ router.get('/subcategory', authenticate, async (req, res) => {
 });
 
 
-// Fetch all products (Superadmin access)
+
 router.get('/all', authenticate, authorizeRole('superadmin'), async (req, res) => {
   try {
-    const products = await Product.find(); // Fetch all products without any filter
+    const products = await Product.find(); 
     const formattedProducts = products.map((product) => ({
       ...product.toObject(),
       status: product.isApproved ? 'approved' : 'pending',
@@ -318,7 +318,7 @@ router.get('/all', authenticate, authorizeRole('superadmin'), async (req, res) =
   }
 });
 
-// Activate Product (Superadmin)
+
 router.patch('/:id/activate', authenticate, authorizeRole('superadmin'), async (req, res) => {
   const { id } = req.params;
 
@@ -328,7 +328,7 @@ router.patch('/:id/activate', authenticate, authorizeRole('superadmin'), async (
       return res.status(404).json({ error: 'Product not found' });
     }
 
-    product.isActive = true;  // Assuming you want to add an isActive field
+    product.isActive = true;  
     await product.save();
 
     res.status(200).json({ message: 'Product activated successfully', product });
@@ -338,7 +338,7 @@ router.patch('/:id/activate', authenticate, authorizeRole('superadmin'), async (
   }
 });
 
-// Approve Product (Superadmin)
+
 router.patch('/:id/approve', authenticate, authorizeRole('superadmin'), async (req, res) => {
   const { id } = req.params;
 
@@ -348,7 +348,7 @@ router.patch('/:id/approve', authenticate, authorizeRole('superadmin'), async (r
       return res.status(404).json({ error: 'Product not found' });
     }
 
-    product.isApproved = true;  // Ensure product gets approved
+    product.isApproved = true;  
     await product.save();
 
     res.status(200).json({ message: 'Product approved successfully', product });
@@ -358,7 +358,7 @@ router.patch('/:id/approve', authenticate, authorizeRole('superadmin'), async (r
   }
 });
 
-// Delete Product (Superadmin)
+
 router.delete('/:id', authenticate, authorizeRole('superadmin'), async (req, res) => {
   const { id } = req.params;
 

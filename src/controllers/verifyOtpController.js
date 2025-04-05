@@ -9,8 +9,8 @@ export const verifyOtpController = async (req, res) => {
   
     const { email, otp } = req.body;
   
-    console.log('Received email:', email);  // Log the received email
-    console.log('Received OTP:', otp);  // Log the received OTP
+    console.log('Received email:', email); 
+    console.log('Received OTP:', otp);  
   
     try {
       // Find the user by email
@@ -19,13 +19,13 @@ export const verifyOtpController = async (req, res) => {
       console.log('User after verification:', user);
 
       if (!user) {
-        console.log('User not found for email:', email);  // Log if user is not found
+        console.log('User not found for email:', email);  
         return res.status(404).json({ error: 'User not found.' });
       }
   
-      // Check if OTP is correct
+
       console.log('Stored OTP:', user.otp);
-      console.log('Received OTP:', otp);  // Log the OTP received from the client
+      console.log('Received OTP:', otp);  
       
       if (user.otp !== otp) {
         console.log('Invalid OTP attempt.');
@@ -44,20 +44,20 @@ export const verifyOtpController = async (req, res) => {
       
       
   
-      // Mark user as verified and clear OTP
+
       user.isVerified = true;
-      user.otp = null;  // Clear OTP after successful verification
+      user.otp = null;  
       console.log('Stored OTP:', user.otp);
-      console.log('Received OTP:', otp);  // Log OTP sent by client
-      user.otpExpiresAt = null;  // Clear OTP expiration
+      console.log('Received OTP:', otp);  
+      user.otpExpiresAt = null;  
       console.log('OTP Expiry Time:', user.otpExpiresAt);
       await user.save();
   
-      console.log('OTP successfully verified for email:', email);  // Log successful OTP verification
+      console.log('OTP successfully verified for email:', email); 
   
       return res.status(200).json({ message: 'OTP verified successfully.' });
     } catch (error) {
-      console.error('Error verifying OTP:', error);  // Log errors for debugging
+      console.error('Error verifying OTP:', error);  
       return res.status(500).json({ error: 'An error occurred during OTP verification.' });
     }
   };
