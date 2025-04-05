@@ -15,7 +15,7 @@ export const loginController = async (req, res) => {
     try {
         const data = await login(email, password);
 
-        // Prevent login if the user's account is deactivated
+    
         if (!data.user.isActive) {
             return res.status(403).json({ error: 'Your account is deactivated. Please contact support.' });
         }
@@ -66,7 +66,6 @@ export const loginController = async (req, res) => {
             return res.status(401).json({ error: 'Invalid credentials. Please try again.' });
         }
 
-        // Handle any other errors
         res.status(500).json({ error: 'An error occurred during login. Please try again.' });
     }
 };
@@ -81,25 +80,25 @@ export const signupController = async (req, res) => {
     const { fullName, email, password, role, purpose } = req.body;
 
     try {
-        // Generate OTP
+  
         const otp = generateOtp();
         
-        // Create the new user
+       
         const user = await signup(fullName, email, password, role, purpose);
-        user.isVerified = false;  // Set isVerified to false initially
-        user.otp = otp;  // Store OTP temporarily
-        user.otpExpires = Date.now() + 10 * 60 * 1000;  // 10 minutes from now
+        user.isVerified = false; 
+        user.otp = otp; 
+        user.otpExpires = Date.now() + 10 * 60 * 1000;  
         
-        await user.save();  // Save user with OTP and expiration time
+        await user.save();  
 
-        // Send OTP email
+
         const otpResult = await sendOtpEmail(email, otp);
         if (!otpResult.success) {
-            console.error(`Failed to send OTP to ${email}:`, otpResult);  // Log the failure for debugging
+            console.error(`Failed to send OTP to ${email}:`, otpResult);  
             return res.status(500).json({ error: 'Failed to send OTP. Please try again.' });
         }
 
-        // Handle additional role-specific data
+       
         if (role === 'buyer') {
             const buyerCollection = new mongoose.Schema({}, { strict: false });
             const Buyer = mongoose.model('Buyer', buyerCollection);
@@ -116,7 +115,7 @@ export const signupController = async (req, res) => {
             await newSeller.save();
         }
 
-        // Send success response
+      
         res.status(201).json({
             message: 'User registered successfully. Please verify your email with the OTP sent to you.',
             user: {
@@ -130,15 +129,15 @@ export const signupController = async (req, res) => {
         });
 
     } catch (error) {
-        // Log the error for debugging
-        console.error('Registration error:', error);  // Log full error for debugging
+       
+        console.error('Registration error:', error); 
         
-        // Handle duplicate email error
+     
         if (error.message.includes('duplicate key error')) {
             return res.status(409).json({ error: 'Email is already registered. Please use another email.' });
         }
 
-        // Catch any other errors
+      
         res.status(500).json({ error: 'An error occurred during user registration. Please try again.' });
     }
 };
@@ -146,8 +145,8 @@ export const signupController = async (req, res) => {
 export const getAllUsers = async (req, res) => {
     try {
         const users = await User.find(
-            { role: { $ne: 'superadmin' } }, // Exclude superadmins
-            '-password' // Exclude the password field
+            { role: { $ne: 'superadmin' } },
+            '-password' 
         );
         res.status(200).json(users);
     } catch (error) {

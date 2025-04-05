@@ -134,7 +134,6 @@ router.delete('/:id', authenticate, async (req, res) => {
   const userRole = req.user.role;
 
   try {
-    // Fetch the room based on user role
     let room;
     if (userRole === 'superadmin') {
       room = await Room.findById(id); 

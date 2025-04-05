@@ -14,14 +14,14 @@ export const getAuthenticatedUser = async (req, res) => {
 
 export const updateAuthenticatedUser = async (req, res) => {
   try {
-    const { file } = req; // Get the file if uploaded
+    const { file } = req; 
     const userData = req.body;
 
-    // Check if a new profile image is uploaded
+
     if (file) {
       userData.profileImage = `/uploads/profileImages/${file.filename}`;
 
-      // If there's an existing profile image, delete the old one from the server
+
       const user = await UserService.getUserById(req.user.id);
       if (user.profileImage) {
         const oldProfileImagePath = `.${user.profileImage}`;
@@ -31,7 +31,7 @@ export const updateAuthenticatedUser = async (req, res) => {
       }
     }
 
-    // Update the user with new data
+
     const updatedUser = await UserService.updateUser(req.user.id, userData);
     res.status(200).json(updatedUser);
   } catch (error) {
@@ -46,7 +46,7 @@ export const deleteAuthenticatedUser = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Delete the user's profile image if it exists
+
     if (user.profileImage) {
       const profileImagePath = `.${user.profileImage}`;
       if (fs.existsSync(profileImagePath)) {

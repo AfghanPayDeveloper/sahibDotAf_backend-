@@ -2,23 +2,23 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 
-// Configure storage
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadDir = 'uploads/profileImages';
-    // Ensure the directory exists
+
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
-    cb(null, uploadDir); // Directory to save profile images
+    cb(null, uploadDir); 
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname)}`;
-    cb(null, uniqueSuffix); // Unique filename
+    cb(null, uniqueSuffix);
   },
 });
 
-// Validate file type (only allow images)
+
 const fileFilter = (req, file, cb) => {
   const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
   if (allowedTypes.includes(file.mimetype)) {
@@ -30,6 +30,6 @@ const fileFilter = (req, file, cb) => {
 
 export const uploadProfileImage = multer({
   storage,
-  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB file size limit
+  limits: { fileSize: 2 * 1024 * 1024 },
   fileFilter,
 });
