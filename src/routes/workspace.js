@@ -29,6 +29,10 @@ router.use(authenticateToken);
 
 router.get("/", getWorkspaces);
 
+router.get("/workspaceGroups", getWorkspaceGroups);
+
+router.post("/workspaceGroups", createWorkspaceGroup);
+
 router.get("/:id", getWorkspaceById);
 
 router.delete("/:id", deleteWorkspace);
@@ -50,10 +54,6 @@ router.put(
   ]),
   updateWorkspace
 );
-
-router.get("/workspaceGroups", getWorkspaceGroups);
-
-router.post("/workspaceGroups", createWorkspaceGroup);
 
 router.get("/workspaceGroups/:id", getWorkspaceGroupById);
 
