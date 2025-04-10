@@ -18,6 +18,8 @@ import swaggerJsDoc from "swagger-jsdoc";
 import winston from "winston";
 import http from "http";
 import { Server } from "socket.io";
+import errorHandler from "./middleware/errorMiddleware.js";
+import setupSocket, { userSockets } from "./utils/socket.js";
 
 dotenv.config();
 connectDB();
@@ -126,6 +128,7 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 app.use("/api", routes);
 
+app.use(errorHandler);
 app.use((req, res, next) => {
   res.status(404).json({ error: "Not Found" });
 });
@@ -136,25 +139,17 @@ const logger = winston.createLogger({
   transports: [new winston.transports.Console()],
 });
 
-app.use((err, req, res, next) => {
-  const status = err.status || 500;
-  logger.error(err.message);
-  res
-    .status(status)
-    .json({ error: status === 500 ? "Internal Server Error" : err.message });
-});
+// app.use((err, req, res, next) => {
+//   const status = err.status || 500;
+//   logger.error(err.message);
+//   res
+//     .status(status)
+//     .json({ error: status === 500 ? "Internal Server Error" : err.message });
+// });
 
 const server = http.createServer(app);
 
-const io = new Server(server, {
-  cors: {
-    origin: allowedOrigins,
-    methods: ["GET", "POST"],
-    credentials: true,
-  },
-});
-
-const onlineUsers = new Map();
+const io = setupSocket(server);
 
 io.on("connection", (socket) => {
   console.log("New socket connection:", socket.id);
@@ -163,8 +158,8 @@ io.on("connection", (socket) => {
     if (userId) {
       console.log(`User ${userId} is online`);
       socket.userId = userId;
-      onlineUsers.set(userId, socket);
-      socket.broadcast.emit("userOnline", userId); 
+      userSockets[userId] = socket;
+      socket.broadcast.emit("userOnline", userId);
     }
   });
 
@@ -179,14 +174,6 @@ io.on("connection", (socket) => {
       console.log(`Message sent to ${recipientId}`);
     } else {
       console.log(`User ${recipientId} is not online`);
-    }
-  });
-
-  socket.on("disconnect", () => {
-    if (socket.userId) {
-      console.log(`User ${socket.userId} disconnected`);
-      onlineUsers.delete(socket.userId);
-      socket.broadcast.emit("userOffline", socket.userId);
     }
   });
 });

@@ -2,18 +2,11 @@ import Notification from "../models/Notification.js";
 
 export const getAllNotifications = async (req, res) => {
   try {
-    const notifications = await Notification.find({ to: req.user._id }).sort({
-      created_at: -1,
+    const notifications = await Notification.find({ to: req.user.id }).sort({
+      createdAt: -1,
     }).limit(10);
-    const sendData = {
-      data: notifications.map((notification) => ({
-        type: "Notifications",
-        id: notification._id,
-        attributes: notification,
-      })),
-    };
 
-    res.status(200).send(sendData);
+    res.status(200).send({notifications});
   } catch (error) {
     console.error(error);
     return res.status(500).send({

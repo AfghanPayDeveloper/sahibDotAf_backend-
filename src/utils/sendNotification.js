@@ -1,12 +1,13 @@
-import { io } from "../index.js";
-import { userSockets, onlineUsers } from "./socket.js";
+import { userSockets } from "./socket.js";
 
 export default function sendNotification(userId, data) {
-  // const userSocketId = userSockets[userId];
-  const userSocket = onlineUsers.get(userId);
-
+  const userSocket = userSockets[userId];
+  
   if (userSocket) {
-    // io.to(userSocketId).emit("notification", data);
+    console.log(userId, userSocket.id, " ✅✅✅");
+    console.log("Sending notification to user: ❌❌❌", userId);
     userSocket.emit("notification", data);
+  } else {
+    console.log(`${userId} is offline `, "❌❌❌");
   }
 }

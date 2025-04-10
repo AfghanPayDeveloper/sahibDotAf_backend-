@@ -13,6 +13,7 @@ import roomRoutes from './roomRoutes.js';
 import hallRoutes from './hallRoutes.js';
 import viewRoutes from './viewRoutes.js';
 import mainSLiderRoutes from '../routes/mainSliderRoutes.js';
+import notificationRouter from './notificationRoutes.js';
 // import messageRoutes from './messageRoutes.js';
 
 const router = express.Router();
@@ -33,6 +34,7 @@ router.use('/hall', hallRoutes);
 router.use('/', viewRoutes);
 router.use('/', mainSLiderRoutes);
 // router.use('/messages', messageRoutes);
+router.use('/notifications', notificationRouter);
 
 router.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 

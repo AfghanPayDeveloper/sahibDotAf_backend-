@@ -3,7 +3,7 @@ import {
   getAllNotifications,
   readNotification,
   readUserAllNotification,
-} from "../services/notificationController.js";
+} from "../controllers/notificationController.js";
 import { authenticateToken as authenticate } from "../middleware/auth.js";
 
 const notificationRouter = Router();
