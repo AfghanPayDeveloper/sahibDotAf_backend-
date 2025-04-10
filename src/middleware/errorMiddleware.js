@@ -1,6 +1,6 @@
 const errorHandler = (err, req, res, next) => {
   const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
-  console.log("✅✅✅✅❌❌❌", err)
+  console.log("Inside customer error handler ❌", err)
   if (err.code === 11000) {
     const duplicateError = Object.entries(err.keyValue);
     const duplicateField = duplicateError[0][0];

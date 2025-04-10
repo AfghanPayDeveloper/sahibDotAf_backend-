@@ -154,15 +154,6 @@ const io = setupSocket(server);
 io.on("connection", (socket) => {
   console.log("New socket connection:", socket.id);
 
-  socket.on("userOnline", (userId) => {
-    if (userId) {
-      console.log(`User ${userId} is online`);
-      socket.userId = userId;
-      userSockets[userId] = socket;
-      socket.broadcast.emit("userOnline", userId);
-    }
-  });
-
   socket.on("sendMessage", ({ recipientId, message }) => {
     console.log(`Received message for ${recipientId}: ${message}`);
     const recipientSocket = onlineUsers.get(recipientId);

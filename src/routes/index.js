@@ -7,7 +7,7 @@ import storeRoutes from './storeRoutes.js';
 import productRoutes from './product.js';
 import locationRoutes from './locationRoute.js';
 import workspaceRoutes from './workspace.js';
-import foodRoutes from './food.js';
+import foodRoutes from './foodRoutes.js';
 import serviceRoutes from './serviceRoutes.js';
 import roomRoutes from './roomRoutes.js';
 import hallRoutes from './hallRoutes.js';
