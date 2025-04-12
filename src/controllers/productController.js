@@ -122,13 +122,27 @@ export const approveProduct = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const product = await Product.findById(id);
+    const product = await Product.findById(id).populate("workspaceId");
     if (!product) {
       return res.status(404).json({ error: "Product not found" });
     }
 
     product.isApproved = true;
     await product.save();
+
+    if (product.workspaceId) {
+      const toUser = product.workspaceId.userId;
+      if (toUser) {
+        const notification = new Notification({
+          to: toUser,
+          title: `Product Approved`,
+          content: `(${product.productName}) has been Approved by Our Team`,
+        });
+        await notification.save();
+
+        sendNotification(toUser, notification.toJSON());
+      }
+    }
 
     res.status(200).json({ message: "Product approved successfully", product });
   } catch (error) {
@@ -148,13 +162,27 @@ export const unApproveProduct = async (req, res) => {
   }
 
   try {
-    const product = await Product.findById(id);
+    const product = await Product.findById(id).populate("workspaceId");
     if (!product) {
       return res.status(404).json({ error: "Product not found" });
     }
 
     product.isApproved = false;
     await product.save();
+
+    if (product.workspaceId) {
+      const toUser = product.workspaceId.userId;
+      if (toUser) {
+        const notification = new Notification({
+          to: toUser,
+          title: `Product Unapproved`,
+          content: `(${product.productName}) has been Unapproved by Our Team`,
+        });
+        await notification.save();
+
+        sendNotification(toUser, notification.toJSON());
+      }
+    }
 
     res
       .status(200)
@@ -174,9 +202,11 @@ export const deleteProduct = async (req, res) => {
     let product;
 
     if (userRole === "superadmin") {
-      product = await Product.findById(id);
+      product = await Product.findById(id).populate("workspaceId");
     } else {
-      product = await Product.findOne({ _id: id, workspaceId });
+      product = await Product.findOne({ _id: id, workspaceId }).populate(
+        "workspaceId"
+      );
     }
 
     if (!product) {
@@ -191,6 +221,34 @@ export const deleteProduct = async (req, res) => {
     deleteFiles(filesToDelete);
 
     await product.remove();
+
+    if (req.user.role === "superadmin") {
+      const toUser = product.workspaceId.userId;
+      if (toUser) {
+        const notification = new Notification({
+          to: toUser,
+          title: `Product Deleted`,
+          profileImage: req.user.profileImage,
+          content: `(${product.productName}) has been Deleted by Our Team`,
+        });
+        await notification.save();
+
+        sendNotification(toUser, notification.toJSON());
+      }
+    } else {
+      const admin = await User.findOne({ role: "superadmin" });
+      if (admin) {
+        const notification = new Notification({
+          to: admin._id,
+          title: `Product Deleted`,
+          profileImage: req.user.profileImage,
+          content: `${req.user.fullName} deleted product (${product.productName}).`,
+        });
+        await notification.save();
+
+        sendNotification(admin._id, notification.toJSON());
+      }
+    }
 
     res.status(200).json({ message: "Product deleted successfully" });
   } catch (error) {
@@ -261,6 +319,18 @@ export const updateProduct = async (req, res) => {
     product.description = description;
 
     await product.save();
+
+    const admin = await User.findOne({ role: "superadmin" });
+    if (admin) {
+      const notification = new Notification({
+        to: admin._id,
+        title: `Product updated`,
+        content: `${req.user.fullName} updated (${product.productName}).`,
+      });
+      await notification.save();
+
+      sendNotification(admin._id, notification.toJSON());
+    }
 
     res.status(200).json({ message: "Product updated successfully", product });
   } catch (error) {
