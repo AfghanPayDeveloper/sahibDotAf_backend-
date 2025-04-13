@@ -17,7 +17,6 @@ import swaggerUi from "swagger-ui-express";
 import swaggerJsDoc from "swagger-jsdoc";
 import winston from "winston";
 import http from "http";
-import { Server } from "socket.io";
 import errorHandler from "./middleware/errorMiddleware.js";
 import setupSocket, { userSockets } from "./utils/socket.js";
 

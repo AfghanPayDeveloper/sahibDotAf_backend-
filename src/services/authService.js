@@ -74,6 +74,7 @@ export const login = async (email, password) => {
   @returns {string} 
  */
 export const generateToken = (user) => {
+  console.log("Generating token for user1: 💌💌💌", user);
   return jwt.sign(
     {
       id: user._id,

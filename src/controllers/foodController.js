@@ -48,10 +48,11 @@ export const createFood = async (req, res) => {
         to: admin._id,
         title: `New Food created`,
         content: `${req.user.fullName} created Food (${newFood.name}).`,
+        from: req.user.id
       });
       await notification.save();
 
-      sendNotification(admin._id, notification.toJSON());
+      sendNotification(admin._id, { ...notification.toJSON(), from: req.user });
     }
 
     res
@@ -119,10 +120,13 @@ export const updateFood = async (req, res) => {
         to: admin._id,
         title: `Food updated`,
         content: `${req.user.fullName} updated Food (${food.name}).`,
+        from: req.user.id
       });
       await notification.save();
 
-      sendNotification(admin._id, notification.toJSON());
+      console.log("Notification sent to admin: ⬆️", notification);
+
+      sendNotification(admin._id, { ...notification.toJSON(), from: req.user });
     }
 
     res.status(200).json({ message: "Food item updated successfully", food });
@@ -155,10 +159,11 @@ export const approveFood = async (req, res) => {
       to: food.workspaceId.userId,
       title: `Food Approved`,
       content: `(${food.name}) Food has been Approved by our Admin.`,
+      from: req.user.id
     });
     await notification.save();
 
-    sendNotification(food.workspaceId.userId, notification.toJSON());
+    sendNotification(food.workspaceId.userId, { ...notification.toJSON(), from: req.user });
 
     res.status(200).json({ message: "Food item approved successfully", food });
   } catch (error) {
@@ -190,10 +195,11 @@ export const unapproveFood = async (req, res) => {
       to: food.workspaceId.userId,
       title: `Food Approved`,
       content: `(${food.name}) Food has been Unapproved by our Admin.`,
+      from: req.user.id
     });
     await notification.save();
 
-    sendNotification(food.workspaceId.userId, notification.toJSON());
+    sendNotification(food.workspaceId.userId, { ...notification.toJSON(), from: req.user });
 
     res
       .status(200)
@@ -224,10 +230,11 @@ export const deleteFood = async (req, res) => {
         to: food.workspaceId.userId,
         title: `Food Deleted`,
         content: `(${food.name}) Food has been Deleted by ${req.user.fullName}.`,
+        from: req.user.id
       });
       await notification.save();
 
-      sendNotification(food.workspaceId.userId, notification.toJSON());
+      sendNotification(food.workspaceId.userId, { ...notification.toJSON(), from: req.user });
     } else {
       const admin = await User.findOne({ role: "superadmin" });
       if (admin) {
@@ -235,10 +242,11 @@ export const deleteFood = async (req, res) => {
           to: admin._id,
           title: `Food Approved`,
           content: `(${food.name}) Food has been Deleted by ${req.user.fullName}.`,
+          from: req.user.id
         });
         await notification.save();
 
-        sendNotification(admin._id, notification.toJSON());
+        sendNotification(admin._id, { ...notification.toJSON(), from: req.user });
       }
     }
 
@@ -270,10 +278,11 @@ export const createMenu = async (req, res) => {
         to: admin._id,
         title: `New Menu Created`,
         content: `${req.user.fullName} created Menu (${newMenu.name}).`,
+        from: req.user.id
       });
       await notification.save();
 
-      sendNotification(admin._id, notification.toJSON());
+      sendNotification(admin._id, { ...notification.toJSON(), from: req.user });
     }
     res
       .status(201)
@@ -322,10 +331,11 @@ export const updateMenu = async (req, res) => {
         to: admin._id,
         title: `Menu Updated`,
         content: `${req.user.fullName} updated menu (${menu.name}).`,
+        from: req.user.id
       });
       await notification.save();
 
-      sendNotification(admin._id, notification.toJSON());
+      sendNotification(admin._id, { ...notification.toJSON(), from: req.user });
     }
     res.status(200).json({ message: "Menu updated successfully", menu });
   } catch (error) {
@@ -355,10 +365,11 @@ export const deleteMenu = async (req, res) => {
         to: admin._id,
         title: `Menu Deleted`,
         content: `(${menu.name}) Menu has been Deleted by ${req.user.fullName}.`,
+        from: req.user.id
       });
       await notification.save();
 
-      sendNotification(admin._id, notification.toJSON());
+      sendNotification(admin._id, { ...notification.toJSON(), from: req.user });
     }
 
     res.status(200).json({ message: "Menu deleted successfully" });

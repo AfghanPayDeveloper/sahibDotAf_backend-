@@ -103,10 +103,11 @@ export const createProduct = async (req, res) => {
         to: admin._id,
         title: `New Product created`,
         content: `${req.user.fullName} created product (${newProduct.productName}).`,
+        from: req.user.id
       });
       await notification.save();
 
-      sendNotification(admin._id, notification.toJSON());
+      sendNotification(admin._id, { ...notification.toJSON(), from: req.user });
     }
     res.status(201).json({
       message: "Product created successfully, awaiting approval",
@@ -136,11 +137,12 @@ export const approveProduct = async (req, res) => {
         const notification = new Notification({
           to: toUser,
           title: `Product Approved`,
-          content: `(${product.productName}) has been Approved by Our Team`,
+          content: `(${product.productName}) has been Approved by Sahib's Team`,
+          from: req.user.id,
         });
         await notification.save();
 
-        sendNotification(toUser, notification.toJSON());
+        sendNotification(toUser, { ...notification.toJSON(), from: req.user });
       }
     }
 
@@ -176,11 +178,12 @@ export const unApproveProduct = async (req, res) => {
         const notification = new Notification({
           to: toUser,
           title: `Product Unapproved`,
-          content: `(${product.productName}) has been Unapproved by Our Team`,
+          content: `(${product.productName}) has been Unapproved by Sahib's Team`,
+          from: req.user.id,
         });
         await notification.save();
 
-        sendNotification(toUser, notification.toJSON());
+        sendNotification(toUser, { ...notification.toJSON(), from: req.user });
       }
     }
 
@@ -228,12 +231,13 @@ export const deleteProduct = async (req, res) => {
         const notification = new Notification({
           to: toUser,
           title: `Product Deleted`,
-          profileImage: req.user.profileImage,
-          content: `(${product.productName}) has been Deleted by Our Team`,
+          from: req.user.id,
+          content: `(${product.productName}) has been Deleted by Sahib's Team`,
+          from: req.user.id
         });
         await notification.save();
 
-        sendNotification(toUser, notification.toJSON());
+        sendNotification(toUser, { ...notification.toJSON(), from: req.user });
       }
     } else {
       const admin = await User.findOne({ role: "superadmin" });
@@ -241,12 +245,13 @@ export const deleteProduct = async (req, res) => {
         const notification = new Notification({
           to: admin._id,
           title: `Product Deleted`,
-          profileImage: req.user.profileImage,
+          from: req.user.id,
           content: `${req.user.fullName} deleted product (${product.productName}).`,
+          from: req.user.id
         });
         await notification.save();
 
-        sendNotification(admin._id, notification.toJSON());
+        sendNotification(admin._id, { ...notification.toJSON(), from: req.user });
       }
     }
 
@@ -326,10 +331,11 @@ export const updateProduct = async (req, res) => {
         to: admin._id,
         title: `Product updated`,
         content: `${req.user.fullName} updated (${product.productName}).`,
+        from: req.user.id
       });
       await notification.save();
 
-      sendNotification(admin._id, notification.toJSON());
+      sendNotification(admin._id, { ...notification.toJSON(), from: req.user });
     }
 
     res.status(200).json({ message: "Product updated successfully", product });

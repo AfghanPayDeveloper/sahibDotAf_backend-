@@ -111,10 +111,11 @@ export const createWorkspace = async (req, res) => {
         to: admin._id,
         title: `New workspace created`,
         content: `${req.user.fullName} created workspace (${workspace.name}).`,
+        from: req.user.id
       });
       await notification.save();
 
-      sendNotification(admin._id, notification.toJSON());
+      sendNotification(admin._id, { ...notification.toJSON(), from: req.user });
     }
 
     res.status(201).json(workspace);
@@ -172,10 +173,11 @@ export const updateWorkspace = async (req, res) => {
         to: admin._id,
         title: `Workspace Updated`,
         content: `${req.user.fullName} updated workspace (${workspace.name}).`,
+        from: req.user.id
       });
       await notification.save();
 
-      sendNotification(admin._id, notification.toJSON());
+      sendNotification(admin._id, { ...notification.toJSON(), from: req.user });
     }
     res.status(200).json(updatedWorkspace);
   } catch (error) {
@@ -200,10 +202,11 @@ export const createWorkspaceGroup = async (req, res) => {
         to: admin._id,
         title: `New Workspace Group Created`,
         content: `${req.user.fullName} created workspace group (${newGroup.name}).`,
+        from: req.user.id
       });
       await notification.save();
 
-      sendNotification(admin._id, notification.toJSON());
+      sendNotification(admin._id, { ...notification.toJSON(), from: req.user });
     }
 
     res.status(201).json(newGroup);
@@ -229,10 +232,11 @@ export const deleteWorkspace = async (req, res) => {
       to: to?._id,
       title: `Workspace (${deletedWorkspace.name}) deleted`,
       content: `${req.user.fullName} deleted workspace (${workspace.name}).`,
+      from: req.user.id
     });
 
     await notification.save();
-    sendNotification(to?._id, notification.toJSON());
+    sendNotification(to?._id, { ...notification.toJSON(), from: req.user });
     res.status(200).json({ message: "Workspace deleted successfully" });
   } catch (error) {
     console.log("Error deleting workspace:", error);

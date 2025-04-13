@@ -28,6 +28,7 @@ export const loginController = async (req, res) => {
     }
 
     const token = generateToken(user);
+    console.log("Generating token for user2: 💌💌💌", user);
 
     const userData = {
       id: user._id,
@@ -159,6 +160,7 @@ export const getAllUsers = async (req, res) => {
 };
 
 function generateToken(user) {
+  console.log("Generating token for user: 💌💌💌", user);
   return jwt.sign(
     {
       id: user._id,

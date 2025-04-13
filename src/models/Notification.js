@@ -7,7 +7,7 @@ const NotificationSchema = new mongoose.Schema({
     // required: [true, "data for notification is required"]
    },
   to: { type: mongoose.Types.ObjectId, ref: "User", required: true },
-  profileImage: { type: String },
+  from: { type: mongoose.Types.ObjectId, ref: "User", required: true },
   unread: { type: Boolean, default: true },
 }, { timestamps: true });
 
