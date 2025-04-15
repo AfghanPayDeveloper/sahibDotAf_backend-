@@ -29,6 +29,10 @@ function setupSocket(server) {
       }
     });
 
+    socket.on("sendMessage", (message) => {
+      socket.broadcast.emit("receiveMessage", { ...message, sender: true });
+    });
+
     socket.on("disconnect", (disconnectedSocket) => {
       console.log("User disconnected:", socket.id);
       for (const [userId, socket] of Object.entries(userSockets)) {
