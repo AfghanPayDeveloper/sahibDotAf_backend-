@@ -12,7 +12,7 @@ import hallRoutes from './hallRoutes.js';
 import viewRoutes from './viewRoutes.js';
 import mainSLiderRoutes from './mainSliderRoutes.js';
 import notificationRouter from './notificationRoutes.js';
-// import messageRoutes from './messageRoutes.js';
+import chatRouter from './chatRoutes.js';
 
 const router = express.Router();
 
@@ -29,7 +29,7 @@ router.use('/room', roomRoutes);
 router.use('/hall', hallRoutes);
 router.use('/', viewRoutes);
 router.use('/', mainSLiderRoutes);
-// router.use('/messages', messageRoutes);
+router.use('/chat', chatRouter);
 router.use('/notifications', notificationRouter);
 
 router.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
