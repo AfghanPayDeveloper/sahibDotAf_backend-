@@ -1,4 +1,8 @@
 import { Server } from "socket.io";
+import Message from "../models/Message.js";
+import Chat from "../models/Chat.js";
+import sendNotification from "./sendNotification.js";
+import Notification from "../models/Notification.js";
 
 export const userSockets = {};
 let io;
@@ -20,18 +24,117 @@ function setupSocket(server) {
   io.on("connection", (socket) => {
     console.log("Socket connected:", socket.id);
 
-    socket.on("userOnline", (userId) => {
+    socket.on("user_online", (userId) => {
       if (userId) {
         socket.userId = userId;
         userSockets[userId] = socket;
         console.log(`User ${userId} registered with socket ID ${socket.id} 🆔`);
-        socket.broadcast.emit("userOnline", userId);
+        socket.broadcast.emit("user_online", userId);
       }
     });
 
-    socket.on("sendMessage", (message) => {
-      socket.broadcast.emit("receiveMessage", { ...message, sender: true });
+    socket.on("send_message", async (message, cb) => {
+      const { chatId, content, mediaType, reactions, userId } = message;
+      console.log("Message received:", message);
+      try {
+        let chatToSendMessage = await Chat.findOne({
+          _id: chatId,
+          participants: userId,
+        });
+
+        if (!chatToSendMessage) {
+          return cb({ error: "Chat not found or user not in chat" });
+        }
+
+        let mediaUrl = null;
+
+        const savedMessage = await Message.create({
+          sender: userId,
+          chat: chatToSendMessage._id,
+          content,
+          mediaUrl,
+          mediaType: mediaType || 'none',
+          reactions: reactions || [],
+        });
+
+
+        chatToSendMessage.lastMessage = savedMessage._id;
+        await chatToSendMessage.save();
+
+        let otherUser = chatToSendMessage.participants.find(p => p._id.toString() !== userId);
+        const userSocket = userSockets[otherUser._id];
+        chatToSendMessage.lastMessage = savedMessage._id;
+        await chatToSendMessage.save();
+
+        if (userSocket) {
+          userSocket.emit('receive_message', { ...savedMessage.toJSON(), isYou: false });
+        } else {
+          console.log(`${otherUser._id} is offline `, "💀💀💀");
+        }
+        cb({ ...savedMessage.toJSON(), isYou: true });
+      } catch (error) {
+        console.error('Error sending message:', error);
+        cb({ error: "Error sending message using socket" });
+      }
     });
+
+    socket.on("message_and_create_chat", async (message, cb) => {
+      const { receiverId, content, sender, messageType } = message;
+      try {
+        const chat = await Chat.create({
+          participants: [receiverId, sender],
+        })
+
+        const newMessage = await Message.create({
+          sender,
+          content,
+          chat: chat._id,
+          messageType: messageType || 'text'
+        })
+
+        chat.lastMessage = newMessage._id;
+        await chat.save();
+
+        // 👉 Re-fetch with populated participants
+        const populatedChat = await Chat.findById(chat._id)
+          .populate("participants", "fullName profileImage email")
+          .populate("lastMessage");
+
+        const receiverSocket = userSockets[receiverId];
+
+        if (receiverSocket) {
+          const notification = await Notification.create({
+            from: sender,
+            to: receiverId,
+            title: "New message",
+            content: "You have a new message",
+          })
+
+          sendNotification(receiverId, notification);
+
+          function formatChat(chat) {
+            if (!chat.isGroup) {
+              const otherUser = chat.participants.find(p => p._id.toString() !== sender);
+              return {
+                ...chat.toJSON(),
+                chatName: otherUser.fullName,
+                chatProfile: otherUser.profileImage
+              };
+            }
+            return chat;
+          }
+
+          receiverSocket.emit("new_chat", formatChat(populatedChat));
+          // receiverSocket.emit("receive_message", { ...newMessage.toJSON(), isYou: false });
+        } else {
+          console.log(`${receiverId} is offline `, "💀💀💀");
+        }
+        cb({ ...newMessage.toJSON(), isYou: true });
+      } catch (error) {
+        console.error("Error creating chat and sending message:", error);
+        cb({ error: "Error creating chat and sending message" });
+      }
+    })
 
     socket.on("disconnect", (disconnectedSocket) => {
       console.log("User disconnected:", socket.id);

@@ -4,7 +4,7 @@ import { userSockets } from "./socket.js";
 export default function sendNotification(userId, data) {
   const userSocket = userSockets[userId];
 
-  User.findById(data.from.id).then((user) => {
+  User.findById(data.from?.id || data.from).then((user) => {
     if (user) {
       if (userSocket) {
         console.log("Sending notification to user: 🔔🔔🔔", userId);

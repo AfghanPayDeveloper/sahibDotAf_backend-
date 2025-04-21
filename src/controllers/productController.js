@@ -48,6 +48,20 @@ export const getProducts = async (req, res) => {
   }
 };
 
+export const getProductById = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const product = await Product.findById(id).populate({ path: "workspaceId", populate: { path: "userId" } });
+
+    if (!product) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+  } catch (error) {
+    console.error("Error fetching product:", error);
+    return res.status(500).json({ error: "Failed to retrieve product" });
+  }
+}
+
 const deleteFiles = (files) => {
   files.forEach((file) => {
     const filePath = path.join(process.cwd(), file);

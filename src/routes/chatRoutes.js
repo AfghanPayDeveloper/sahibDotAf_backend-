@@ -2,7 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import path from 'path';
 import { authenticateToken } from '../middleware/auth.js';
-import { deleteMessage, getChatMessages, getChats, getConversationMessages, markAsRead, reactToMessage, sendMessage, updateMessageStatus } from '../controllers/chatController.js';
+import { createChatAndSendMessage, deleteMessage, getChatMessages, getChats, getConversationMessages, markAsRead, reactToMessage, sendMessage, updateMessageStatus } from '../controllers/chatController.js';
 
 const router = express.Router();
 
@@ -20,7 +20,7 @@ const upload = multer({ storage });
 
 router.use(authenticateToken);
 
-router.post('/send', upload.single('media'), sendMessage);
+router.post('/', upload.single('media'), sendMessage);
 
 router.get('/conversation/:user1/:user2', getConversationMessages);
 
@@ -35,5 +35,9 @@ router.put('/deleteMessage/:id', deleteMessage);
 router.get('/', getChats);
 
 router.get('/:chatId', getChatMessages);
+
+router.post('/:chatId', sendMessage);
+
+router.post('/new', createChatAndSendMessage);
 
 export default router;

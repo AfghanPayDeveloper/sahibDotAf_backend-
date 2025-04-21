@@ -1,5 +1,7 @@
 import Message from '../models/Message.js';
 import Chat from '../models/Chat.js';
+import User from '../models/User.js';
+import { userSockets } from '../utils/socket.js';
 
 
 
@@ -159,7 +161,19 @@ export const getChats = async (req, res) => {
             .populate('participants', 'fullName email profileImage')
             .populate('lastMessage')
 
-        res.status(200).json({ chats });
+        const formattedChats = chats.map(chat => {
+            if (!chat.isGroup) {
+                const otherUser = chat.participants.find(p => p._id.toString() !== userId);
+                return {
+                    ...chat.toJSON(),
+                    chatName: otherUser.fullName,
+                    chatProfile: otherUser.profileImage
+                };
+            }
+            return chat; // For group chats, keep as is or handle differently
+        });
+
+        res.status(200).json({ chats: formattedChats });
     } catch (error) {
         console.error('Error fetching chats:', error);
         res.status(500).json({ error: 'Failed to fetch chats' });
@@ -183,13 +197,23 @@ export const getChatMessages = async (req, res) => {
         }
 
         const messages = await Message.find({ chat: chatId, isDeleted: false })
-            .sort({ createdAt: -1 })
+            .sort({ createdAt: 1 })
             .populate('sender', 'fullName email profileImage')
-            .populate('receiver', 'fullName email profileImage');
-        if (!messages.length) {
-            return res.status(404).json({ error: 'No messages found' });
-        }
-        res.status(200).json({ chat, messages });
+
+        const formattedMessages = messages.map(message => {
+            if (message.sender._id.toString() !== userId) {
+                return {
+                    ...message.toJSON(),
+                    isYou: false,
+                };
+            }
+            return {
+                ...message.toJSON(),
+                isYou: true,
+            };
+        })
+
+        res.status(200).json({ chat, messages: formattedMessages });
     } catch (error) {
         console.error('Error fetching chat messages:', error);
         res.status(500).json({ error: 'Failed to fetch chat messages' });
@@ -197,14 +221,62 @@ export const getChatMessages = async (req, res) => {
     }
 }
 
-export const sendMessage = async (req, res) => {
-    const { content, mediaType, reactions } = req.body;
-    const { chatId } = req.params;
+export const createChatAndSendMessage = async (req, res) => {
+    const { content, mediaType, reactions, receiverId, messageType } = req.body;
     const userId = req.user.id;
+
+    try {
+        const chat = await Chat.findOrCreate({
+            participants: [receiverId, userId],
+        })
+
+        const newMessage = await Message.create({
+            userId,
+            content,
+            chat: chat._id,
+            messageType: messageType || 'text'
+        })
+
+        chat.lastMessage = newMessage._id;
+        await chat.save();
+        const receiverSocket = userSockets[receiverId];
+
+        if (receiverSocket) {
+            const notification = await Notification.create({
+                from: userId,
+                to: receiverId,
+                title: "New message",
+                content: "You have a new message",
+            })
+
+            sendNotification(receiverId, notification);
+            receiverSocket.emit("receive_message", { ...newMessage.toJSON(), isYou: false });
+        }
+        res.status(201).send({ message: { ...newMessage.toJSON(), isYou: true }, chat });
+    } catch (error) {
+        console.error("Error creating chat and sending message:", error);
+        res.status(500).send({ error: "Error creating chat and sending message" });
+    }
+}
+
+export const sendMessage = async (req, res) => {
+    const { content, mediaType, reactions, receiverId } = req.body;
+    const userId = req.user.id;
+    const { chatId } = req.params;
+
 
     try {
         if (!content && !req.file) {
             return res.status(400).json({ error: 'Content or media is required' });
+        }
+
+        let chatToSendMessage = await Chat.findOne({
+            _id: chatId,
+            participants: userId,
+        });
+
+        if (!chatToSendMessage) {
+            return res.status(404).json({ error: 'Chat not found' });
         }
 
         let mediaUrl = null;
@@ -214,7 +286,7 @@ export const sendMessage = async (req, res) => {
 
         const newMessage = new Message({
             sender: userId,
-            chat: chatId,
+            chat: chatToSendMessage._id,
             content,
             mediaUrl,
             mediaType: mediaType || 'none',
@@ -223,13 +295,16 @@ export const sendMessage = async (req, res) => {
 
         const savedMessage = await newMessage.save();
 
-        const chat = await Chat.findById(chatId);
-        if (!chat) {
-            return res.status(404).json({ error: 'Chat not found' });
-        }
+        chatToSendMessage.lastMessage = savedMessage._id;
+        await chatToSendMessage.save();
 
-        chat.lastMessage = savedMessage._id;
-        await chat.save();
+        let otherUser = chatToSendMessage.participants.find(p => p._id.toString() !== userId);
+        const userSocket = userSockets[otherUser._id];
+        if (userSocket) {
+            userSocket.emit('receiveMessage', { ...savedMessage.toJSON(), isYou: false });
+        } else {
+            console.log(`${otherUser._id} is offline `, "💀💀💀");
+        }
 
         res.status(201).json(savedMessage);
     } catch (error) {
