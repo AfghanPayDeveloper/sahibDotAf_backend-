@@ -3,6 +3,7 @@ import Message from "../models/Message.js";
 import Chat from "../models/Chat.js";
 import sendNotification from "./sendNotification.js";
 import Notification from "../models/Notification.js";
+import User from "../models/User.js";
 
 export const userSockets = {};
 let io;
@@ -24,12 +25,27 @@ function setupSocket(server) {
   io.on("connection", (socket) => {
     console.log("Socket connected:", socket.id);
 
-    socket.on("user_online", (userId) => {
+    socket.on("user_online", async (userId) => {
+      console.log("User online: 🟡", userId);
       if (userId) {
         socket.userId = userId;
         userSockets[userId] = socket;
         console.log(`User ${userId} registered with socket ID ${socket.id} 🆔`);
         socket.broadcast.emit("user_online", userId);
+
+        try {
+          const user = await User.findByIdAndUpdate(userId, {
+            status: "online",
+            lastSeen: null,
+          });
+          if (user) {
+            console.log("User status updated to online:", user.fullName);
+          } else {
+            console.log("User not found:", userId);
+          }
+        } catch (error) {
+          console.error("Error updating user status:", error);
+        }
       }
     });
 
@@ -136,14 +152,27 @@ function setupSocket(server) {
       }
     })
 
-    socket.on("disconnect", (disconnectedSocket) => {
+    socket.on("disconnect", async () => {
       console.log("User disconnected:", socket.id);
-      for (const [userId, socket] of Object.entries(userSockets)) {
-        if (disconnectedSocket.id === socket.id) {
-          delete userSockets[userId];
-          break;
+      const userId = socket.userId;
+      io.emit("user_offline", {userId, lastSeen: new Date()});
+      try {
+        const user = await User.findByIdAndUpdate(userId, {
+          status: "offline",
+          lastSeen: new Date(),
+        });
+
+        if (user) {
+          console.log("User status updated to offline: 🔴", userId);
+        } else {
+          console.log("User not found:", userId);
         }
+        delete userSockets[userId];
+        console.log(`User ${userId} unregistered from socket ID ${socket.id} 🆔`);
+      } catch (error) {
+        console.error("Error updating user status:", error);
       }
+
     });
   });
 

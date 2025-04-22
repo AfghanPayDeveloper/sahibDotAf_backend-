@@ -158,7 +158,7 @@ export const getChats = async (req, res) => {
 
     try {
         const chats = await Chat.find({ participants: userId })
-            .populate('participants', 'fullName email profileImage')
+            .populate('participants', 'fullName email profileImage status lastSeen')
             .populate('lastMessage')
 
         const formattedChats = chats.map(chat => {
