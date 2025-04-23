@@ -36,7 +36,7 @@ router.get('/', getChats);
 
 router.get('/:chatId', getChatMessages);
 
-router.post('/:chatId', sendMessage);
+router.post('/:chatId', upload.array('media'), sendMessage);
 
 router.post('/new', createChatAndSendMessage);
 

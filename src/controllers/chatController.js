@@ -263,10 +263,10 @@ export const sendMessage = async (req, res) => {
     const { content, mediaType, reactions, receiverId } = req.body;
     const userId = req.user.id;
     const { chatId } = req.params;
-
+    console.log(req.body)
 
     try {
-        if (!content && !req.file) {
+        if (!content && !req.files) {
             return res.status(400).json({ error: 'Content or media is required' });
         }
 
