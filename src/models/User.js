@@ -10,18 +10,18 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    
+
     role: {
       type: String,
       enum: ['seller', 'buyer', 'superadmin'],
       default: 'buyer',
     },
-    purpose: { type: String }, 
+    purpose: { type: String },
     country_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Country',
       validate: {
-        validator: function(v) {
+        validator: function (v) {
           return mongoose.Types.ObjectId.isValid(v);
         },
         message: props => `${props.value} is not a valid ObjectId!`
@@ -31,7 +31,7 @@ const userSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Province',
       validate: {
-        validator: function(v) {
+        validator: function (v) {
           return mongoose.Types.ObjectId.isValid(v);
         },
         message: props => `${props.value} is not a valid ObjectId!`
@@ -41,7 +41,7 @@ const userSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'District',
       validate: {
-        validator: function(v) {
+        validator: function (v) {
           return mongoose.Types.ObjectId.isValid(v);
         },
         message: props => `${props.value} is not a valid ObjectId!`
@@ -55,10 +55,12 @@ const userSchema = new mongoose.Schema(
     whatsapp: { type: String },
     date: { type: Date, default: Date.now },
     isVerified: { type: Boolean, default: false },
-    otp: { type: String }, 
-    otpExpiresAt: { type: Date }, 
+    otp: { type: String },
+    otpExpiresAt: { type: Date },
     isApproved: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },
+    status: { type: String, enum: ['online', 'offline', 'away'], default: 'offline' },
+    lastSeen: { type: Date },
   },
   { timestamps: true }
 );

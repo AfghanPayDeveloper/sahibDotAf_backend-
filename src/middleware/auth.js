@@ -6,7 +6,7 @@ dotenv.config();
 export const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
-  console.log(token);
+  // console.log(token);
 
   if (!token) {
       console.error('Token missing in request');
@@ -15,12 +15,12 @@ export const authenticateToken = (req, res, next) => {
 
   try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      console.log('Decoded Token:', decoded); 
+      // console.log('Decoded Token:', decoded); 
       req.user = decoded;
       next();
   } catch (error) {
       console.error('Error verifying token:', error.message); 
-      res.status(403).json({ error: 'Forbidden: Invalid token' });
+      res.status(401).json({ error: 'Unauthorized: Invalid token' });
   }
 };
 

@@ -17,7 +17,7 @@ const roomSchema = new mongoose.Schema(
     },
     workspaceId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'WorkSpace',
+      ref: 'Workspace',
       required: true,
     },
   },

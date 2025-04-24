@@ -1,138 +1,65 @@
-import express from 'express';
-import multer from 'multer';
-import Room from '../models/Room.js';
-import { authenticateToken as authenticate } from '../middleware/auth.js';
-import path from 'path';
-import fs from 'fs';
+import express from "express";
+import multer from "multer";
+import { authenticateToken as authenticate } from "../middleware/auth.js";
+import path from "path";
+import fs from "fs";
+
+import {
+  approveFood,
+  createFood,
+  createMenu,
+  deleteFood,
+  deleteMenu,
+  getFoods,
+  getMenus,
+  unapproveFood,
+  updateFood,
+  updateMenu,
+} from "../controllers/foodController.js";
 
 const router = express.Router();
-const uploadsDir = path.join(process.cwd(), 'uploads');
-
+const uploadsDir = path.join(process.cwd(), "uploads");
 
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir);
 }
 
-
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadsDir),
   filename: (req, file, cb) => {
-    const uniqueName = `${Date.now()}-${file.originalname.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+    const uniqueName = `${Date.now()}-${file.originalname.replace(
+      /[^a-zA-Z0-9.]/g,
+      "_"
+    )}`;
     cb(null, uniqueName);
   },
 });
 
 const upload = multer({
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, 
+  limits: { fileSize: 10 * 1024 * 1024 },
 });
 
+router.use(authenticate);
 
-const deleteFiles = (files) => {
-  files.forEach((file) => {
-    const filePath = path.join(process.cwd(), file);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
-  });
-};
+router.post("/", upload.single("image"), createFood);
 
+router.get("/", getFoods);
 
+router.patch("/:id", upload.single("image"), updateFood);
 
-router.post('/', authenticate, upload.fields([
-  { name: 'roomThumbnailImage', maxCount: 1 },
-  { name: 'roomImages', maxCount: 10 },
-]), async (req, res) => {
-  try {
-    const { roomName, description, workspaceId } = req.body;
-    const roomThumbnailImage = req.files['roomThumbnailImage']?.[0]?.path.replace(process.cwd(), '');
-    const roomImages = req.files['roomImages']?.map(file => file.path.replace(process.cwd(), ''));
+router.patch("/:id/approve", approveFood);
 
-    if (!roomName || !description || !workspaceId || !roomThumbnailImage) {
-      return res.status(400).json({ message: 'Missing required fields' });
-    }
+router.patch("/:id/unapprove", unapproveFood);
 
-    const room = new Room({
-      roomName,
-      description,
-      workspaceId,
-      roomThumbnailImage,
-      roomImages,
-    });
+router.delete("/:id", deleteFood);
 
-    await room.save();
-    res.status(201).json(room);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Failed to create room' });
-  }
-});
+router.post("/menu", upload.single("image"), createMenu);
 
+router.get("/menu", getMenus);
 
-router.get('/', authenticate, async (req, res) => {
-  try {
-    const rooms = await Room.find().populate('workspaceId');
-    res.status(200).json(rooms);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Failed to fetch rooms' });
-  }
-});
+router.patch("/menu/:id", upload.single("image"), updateMenu);
 
-
-router.patch('/:id', authenticate, upload.fields([
-  { name: 'roomThumbnailImage', maxCount: 1 },
-  { name: 'roomImages', maxCount: 10 },
-]), async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { roomName, description, workspaceId } = req.body;
-    const room = await Room.findById(id);
-
-    if (!room) {
-      return res.status(404).json({ message: 'Room not found' });
-    }
-
-    if (req.files['roomThumbnailImage']) {
-      deleteFiles([room.roomThumbnailImage]);
-      room.roomThumbnailImage = req.files['roomThumbnailImage'][0].path;
-    }
-
-    if (req.files['roomImages']) {
-      deleteFiles(room.roomImages);
-      room.roomImages = req.files['roomImages'].map(file => file.path);
-    }
-
-    room.roomName = roomName || room.roomName;
-    room.description = description || room.description;
-    room.workspaceId = workspaceId || room.workspaceId;
-
-    await room.save();
-    res.status(200).json(room);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Failed to update room' });
-  }
-});
-
-
-router.delete('/:id', authenticate, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const room = await Room.findById(id);
-
-    if (!room) {
-      return res.status(404).json({ message: 'Room not found' });
-    }
-
-    deleteFiles([room.roomThumbnailImage, ...room.roomImages]);
-    await Room.findByIdAndDelete(id);
-
-    res.status(200).json({ message: 'Room deleted successfully' });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Failed to delete room' });
-  }
-});
+router.delete("/menu/:id", deleteMenu);
 
 export default router;
