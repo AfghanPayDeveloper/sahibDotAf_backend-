@@ -21,6 +21,11 @@
         "morgan": "^1.10.0",
         "multer": "^1.4.5-lts.1",
         "pg": "^8.13.1",
+<<<<<<< Updated upstream
+=======
+        "redis": "^4.7.0",
+        "sanitize-html": "^2.16.0",
+>>>>>>> Stashed changes
         "sequelize": "^6.37.5",
         "winston": "^3.17.0"
     }

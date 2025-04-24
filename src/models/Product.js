@@ -17,7 +17,16 @@ const ProductSchema = new mongoose.Schema(
         message: 'New price must be less than old price.',
       }
     },
-    description: { type: String },
+    description: {
+      type: String,
+      validate: {
+        validator: function(value) {
+          const stripped = value.replace(/<[^>]+>/g, '').trim();
+          return stripped.length >= 2 && stripped.length <= 5000;
+        },
+        message: 'Description must contain between 20 and 5000 characters (after removing HTML tags)'
+      }
+    },
     mainImage: { type: String },
     galleryImages: [{ type: String }], 
     isApproved: { type: Boolean, default: false }, 
