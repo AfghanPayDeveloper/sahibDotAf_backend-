@@ -5,13 +5,14 @@ import {
   createWorkspace,
   createWorkspaceGroup,
   deleteWorkspace,
+  deleteWorkspaceGroup,
+  updateWorkspaceGroup,
   getWorkspaceById,
   getWorkspaceGroupById,
   getWorkspaceGroups,
   getWorkspaces,
   updateWorkspace,
 } from "../controllers/workspaceController.js";
-
 const router = express.Router();
 
 const storage = multer.diskStorage({
@@ -32,6 +33,10 @@ router.get("/", getWorkspaces);
 router.get("/workspaceGroups", getWorkspaceGroups);
 
 router.post("/workspaceGroups", createWorkspaceGroup);
+
+
+router.put("/workspaceGroups/:id", updateWorkspaceGroup);
+router.delete("/workspaceGroups/:id", deleteWorkspaceGroup);
 
 router.get("/:id", getWorkspaceById);
 

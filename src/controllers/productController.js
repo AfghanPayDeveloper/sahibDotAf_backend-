@@ -1,10 +1,9 @@
-// const Product = require("../src/schemas/product.schema");
 
 import Notification from "../models/Notification.js";
 import Product from "../models/Product.js";
 import User from "../models/User.js";
 import sendNotification from "../utils/sendNotification.js";
-
+import sanitizeHtml from 'sanitize-html';
 import express from "express";
 import multer from "multer";
 import Category from "../models/Category.js";
@@ -17,11 +16,12 @@ import path from "path";
 import fs from "fs";
 
 export const getProducts = async (req, res) => {
-  const { workspaceId, approved } = req.query;
+  const { workspaceId, approved, categoryId, subcategoryId, minPrice, maxPrice } = req.query;
   const userRole = req.user.role;
 
   try {
     const filter = { workspaceId };
+   
     if (userRole !== "superadmin") {
       if (!workspaceId) {
         return res
@@ -33,7 +33,15 @@ export const getProducts = async (req, res) => {
     if (approved === "true") {
       filter.isApproved = true;
     }
+    if (categoryId)    filter.categoryId    = categoryId;
+    if (subcategoryId) filter.subcategoryId = subcategoryId;
 
+
+    if (minPrice || maxPrice) {
+      filter.newPrice = {};
+      if (minPrice) filter.newPrice.$gte = Number(minPrice);
+      if (maxPrice) filter.newPrice.$lte = Number(maxPrice);
+    }
     const products = await Product.find(filter);
 
     const formattedProducts = products.map((product) => ({
@@ -47,6 +55,34 @@ export const getProducts = async (req, res) => {
     res.status(500).json({ error: "Failed to retrieve products" });
   }
 };
+
+
+
+
+
+export const sanitizeDescription = (req, res, next) => {
+  if (req.body.description) {
+    req.body.description = sanitizeHtml(req.body.description, {
+      allowedTags: ['b', 'i', 'u', 'em', 'strong', 'p', 'br', 'ul', 'ol', 'li', 'a'],
+      allowedAttributes: {
+        'a': ['href', 'target', 'rel'],
+      },
+      allowedSchemes: ['http', 'https', 'mailto'],
+      transformTags: {
+        'a': (tagName, attribs) => ({
+          tagName: 'a',
+          attribs: {
+            href: attribs.href,
+            target: '_blank',
+            rel: 'noopener noreferrer'
+          }
+        })
+      }
+    });
+  }
+  next();
+};
+
 
 const deleteFiles = (files) => {
   files.forEach((file) => {
@@ -262,6 +298,50 @@ export const deleteProduct = async (req, res) => {
   }
 };
 
+
+
+
+
+export const searchProducts = async (req, res) => {
+  try {
+    const { query, category } = req.query;
+    const searchFilter = {};
+
+
+    if (query) {
+      searchFilter.$or = [
+        { productName: { $regex: query, $options: 'i' } }, 
+        { description: { $regex: query, $options: 'i' } }
+      ];
+    }
+
+ 
+    if (category) {
+      const categoryObj = await Category.findOne({ name: { $regex: new RegExp(`^${category}$`, 'i') } });
+      if (!categoryObj) {
+        return res.json({ products: [] });
+      }
+      searchFilter.categoryId = categoryObj._id;
+    }
+
+    const products = await Product.find(searchFilter)
+      .populate('categoryId', 'name')
+      .populate('subcategoryId', 'name');
+
+    const formattedProducts = products.map(product => ({
+      ...product.toObject(),
+      category: product.categoryId?.name,
+      subcategory: product.subcategoryId?.name,
+      status: product.isApproved ? 'approved' : 'pending'
+    }));
+
+    res.json({ products: formattedProducts });
+  } catch (error) {
+    console.error('Error searching products:', error);
+    res.status(500).json({ error: 'Failed to perform search' });
+  }
+};
+
 export const updateProduct = async (req, res) => {
   const { id } = req.params;
   const {
@@ -348,12 +428,15 @@ export const updateProduct = async (req, res) => {
 export const createProductCategory = async (req, res) => {
   const { name } = req.body;
 
-  if (!name) {
-    return res.status(400).json({ error: "Category name is required" });
+  if (!name || !req.file) {
+    return res.status(400).json({ error: "Name and image are required" });
   }
 
   try {
-    const newCategory = new Category({ name });
+    const newCategory = new Category({ 
+      name,
+      image: `/uploads/${req.file.filename}`
+    });
     await newCategory.save();
 
     res.status(201).json({
@@ -362,7 +445,70 @@ export const createProductCategory = async (req, res) => {
     });
   } catch (error) {
     console.error("Error creating category:", error);
+    if (req.file) {
+      const filePath = path.join(process.cwd(), 'uploads', req.file.filename);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    }
     res.status(500).json({ error: "Failed to create category" });
+  }
+};
+
+
+export const deleteCategory = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const category = await Category.findById(id);
+    if (!category) {
+      return res.status(404).json({ error: "Category not found" });
+    }
+
+
+    if (category.image) {
+      const filePath = path.join(process.cwd(), category.image);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    }
+
+    await category.remove();
+    res.status(200).json({ message: "Category deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting category:", error);
+    res.status(500).json({ error: "Failed to delete category" });
+  }
+};
+
+
+export const updateCategory = async (req, res) => {
+  const { id } = req.params;
+  const { name } = req.body;
+
+  try {
+    const category = await Category.findById(id);
+    if (!category) {
+      return res.status(404).json({ error: "Category not found" });
+    }
+
+    if (req.file) {
+      if (category.image) {
+        const oldImagePath = path.join(process.cwd(), category.image);
+        if (fs.existsSync(oldImagePath)) {
+          fs.unlinkSync(oldImagePath);
+        }
+      }
+      category.image = `/uploads/${req.file.filename}`;
+    }
+
+    category.name = name || category.name;
+    await category.save();
+
+    res.status(200).json({ message: "Category updated successfully", category });
+  } catch (error) {
+    console.error("Error updating category:", error);
+    res.status(500).json({ error: "Failed to update category" });
   }
 };
 
@@ -376,17 +522,24 @@ export const getProductCategories = async (req, res) => {
   }
 };
 
+
 export const createProductSubCategory = async (req, res) => {
+  console.log('Received files:', req.file); 
+  console.log('Received body:', req.body);
   const { name, categoryId } = req.body;
 
-  if (!name || !categoryId) {
-    return res
-      .status(400)
-      .json({ error: "SubCategory name and categoryId are required" });
+  if (!name || !categoryId || !req.file) {
+    return res.status(400).json({ 
+      error: "Name, category ID, and image are required" 
+    });
   }
 
   try {
-    const newSubCategory = new SubCategory({ name, categoryId });
+    const newSubCategory = new SubCategory({ 
+      name,
+      categoryId,
+      image: `/uploads/${req.file.filename}`
+    });
     await newSubCategory.save();
 
     res.status(201).json({
@@ -395,7 +548,71 @@ export const createProductSubCategory = async (req, res) => {
     });
   } catch (error) {
     console.error("Error creating subcategory:", error);
+    if (req.file) {
+      const filePath = path.join(process.cwd(), 'uploads', req.file.filename);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    }
     res.status(500).json({ error: "Failed to create subcategory" });
+  }
+};
+
+export const updateSubCategory = async (req, res) => {
+  const { id } = req.params;
+  const { name, categoryId } = req.body;
+
+  try {
+    const subCategory = await SubCategory.findById(id);
+    if (!subCategory) {
+      return res.status(404).json({ error: "SubCategory not found" });
+    }
+
+    if (req.file) {
+      if (subCategory.image) {
+        const oldImagePath = path.join(process.cwd(), subCategory.image);
+        if (fs.existsSync(oldImagePath)) {
+          fs.unlinkSync(oldImagePath);
+        }
+      }
+      subCategory.image = `/uploads/${req.file.filename}`;
+    }
+
+    subCategory.name = name || subCategory.name;
+    subCategory.categoryId = categoryId || subCategory.categoryId;
+    await subCategory.save();
+
+    res.status(200).json({ 
+      message: "SubCategory updated successfully", 
+      subcategory: subCategory 
+    });
+  } catch (error) {
+    console.error("Error updating subcategory:", error);
+    res.status(500).json({ error: "Failed to update subcategory" });
+  }
+};
+
+export const deleteSubCategory = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const subCategory = await SubCategory.findById(id);
+    if (!subCategory) {
+      return res.status(404).json({ error: "SubCategory not found" });
+    }
+
+    if (subCategory.image) {
+      const imagePath = path.join(process.cwd(), subCategory.image);
+      if (fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath);
+      }
+    }
+
+    await subCategory.remove();
+    res.status(200).json({ message: "SubCategory deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting subcategory:", error);
+    res.status(500).json({ error: "Failed to delete subcategory" });
   }
 };
 
@@ -416,35 +633,27 @@ export const getProductSubCategories = async (req, res) => {
 export const getAllProducts = async (req, res) => {
   try {
     const products = await Product.find();
-    const formattedProducts = products.map((product) => ({
-      ...product.toObject(),
-      status: product.isApproved ? "approved" : "pending",
-    }));
-
-    res.json({ products: formattedProducts });
+    res.json(products);
   } catch (error) {
-    console.error("Error fetching all products:", error);
-    res.status(500).json({ error: "Failed to retrieve all products" });
+    res.status(500).json({ message: 'Server Error' });
   }
 };
 
-export const activateProduct = async (req, res) => {
-  const { id } = req.params;
+
+const createProduct = async (req, res) => {
+  const { name, description, price, category } = req.body;
+
+  const newProduct = new Product({ name, description, price, category });
 
   try {
-    const product = await Product.findById(id);
-    if (!product) {
-      return res.status(404).json({ error: "Product not found" });
-    }
-
-    product.isActive = true;
-    await product.save();
-
-    res
-      .status(200)
-      .json({ message: "Product activated successfully", product });
+    await newProduct.save();
+    res.status(201).json(newProduct);
   } catch (error) {
-    console.error("Error activating product:", error);
-    res.status(500).json({ error: "Failed to activate product" });
+    res.status(400).json({ message: 'Error creating product' });
   }
+};
+
+module.exports = {
+  getProducts,
+  createProduct,
 };

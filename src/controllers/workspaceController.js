@@ -42,7 +42,8 @@ export const getWorkspaceGroups = async (req, res) => {
 
 export const getWorkspaces = async (req, res) => {
   try {
-    const workspaces = await Workspace.find({ userId: req.user.id }).populate(
+    const filter = req.user.role === "superadmin" ? {} :{ userId: req.user.id};
+    const workspaces = await Workspace.find(filter).populate(
       "workspaceGroupId userId provinceId districtId countryId"
     );
     res.status(200).json(workspaces);
@@ -54,12 +55,16 @@ export const getWorkspaces = async (req, res) => {
 export const getWorkspaceById = async (req, res) => {
   try {
     const workspaceId = req.params.id;
-    const userId = req.user.id;
 
-    const workspace = await Workspace.findOne({
-      _id: workspaceId,
-      userId,
-    }).populate("workspaceGroupId userId provinceId districtId countryId");
+    const query = { _id: workspaceId };
+
+ 
+    if (req.user.role !== "superadmin") {
+      query.userId = req.user.id;
+    }
+
+    const workspace = await Workspace.findOne(query)
+      .populate("workspaceGroupId userId provinceId districtId countryId");
 
     if (!workspace) {
       return res
@@ -220,7 +225,7 @@ export const deleteWorkspace = async (req, res) => {
   try {
     const workspace = await Workspace.findById(req.params.id);
 
-    if (!workspace || workspace.userId.toString() !== req.user.id) {
+    if ( !workspace || (req.user.role !== "superadmin" && workspace.userId.toString() !== req.user.id)) {
       return res
         .status(404)
         .json({ message: "Workspace not found or access denied" });
@@ -241,5 +246,83 @@ export const deleteWorkspace = async (req, res) => {
   } catch (error) {
     console.log("Error deleting workspace:", error);
     res.status(500).json({ message: "Error deleting workspace", error });
+  }
+};
+
+
+export const updateWorkspaceGroup = async (req, res) => {
+  try {
+    const { workspaceName } = req.body;
+    const { id } = req.params;
+
+    if (!workspaceName) {
+      return res.status(400).json({ message: "Workspace name is required" });
+    }
+
+    const updatedGroup = await WorkspaceGroup.findByIdAndUpdate(
+      id,
+      { workspaceName },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedGroup) {
+      return res.status(404).json({ message: "Workspace group not found" });
+    }
+
+    const admin = await User.findOne({ role: "superadmin" });
+    if (admin) {
+      const notification = new Notification({
+        to: admin._id,
+        title: `Workspace Group Updated`,
+        content: `${req.user.fullName} updated workspace group (${updatedGroup.workspaceName}).`,
+        from: req.user.id
+      });
+      await notification.save();
+      sendNotification(admin._id, { ...notification.toJSON(), from: req.user });
+    }
+
+    res.status(200).json(updatedGroup);
+  } catch (error) {
+    console.error("Error updating workspace group:", error);
+    res.status(500).json({ message: "Error updating workspace group", error });
+  }
+};
+
+
+export const deleteWorkspaceGroup = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const group = await WorkspaceGroup.findById(id);
+    if (!group) {
+      return res.status(404).json({ message: "Workspace group not found" });
+    }
+
+    // Optional: Check if workspaces exist under this group
+    const relatedWorkspaces = await Workspace.find({ workspaceGroupId: id });
+    if (relatedWorkspaces.length > 0) {
+      return res.status(400).json({
+        message: "Cannot delete workspace group with associated workspaces",
+      });
+    }
+
+    await WorkspaceGroup.findByIdAndDelete(id);
+
+    const admin = await User.findOne({ role: "superadmin" });
+    if (admin) {
+      const notification = new Notification({
+        to: admin._id,
+        title: `Workspace Group Deleted`,
+        content: `${req.user.fullName} deleted workspace group (${group.workspaceName}).`,
+        from: req.user.id
+      });
+      await notification.save();
+      sendNotification(admin._id, { ...notification.toJSON(), from: req.user });
+    }
+
+    res.status(200).json({ message: "Workspace group deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting workspace group:", error);
+    res.status(500).json({ message: "Error deleting workspace group", error });
   }
 };

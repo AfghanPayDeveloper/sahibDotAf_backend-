@@ -65,20 +65,26 @@ export const createFood = async (req, res) => {
 };
 
 export const getFoods = async (req, res) => {
-  const { menuId, workspaceId } = req.query;
-
-  if (!menuId && !workspaceId) {
-    return res
-      .status(400)
-      .json({ error: "Either menuId or workspaceId is required" });
-  }
-
   try {
-    const filter = {};
-    if (menuId) filter.menuId = menuId;
-    if (workspaceId) filter.workspaceId = workspaceId;
+    let filter = {};
 
-    const foods = await Food.find(filter);
+
+    if (req.user.role !== 'superadmin') {
+      if (!req.query.menuId && !req.query.workspaceId) {
+        return res.status(400).json({ 
+          error: "Either menuId or workspaceId is required" 
+        });
+      }
+    }
+
+
+    if (req.query.menuId) filter.menuId = req.query.menuId;
+    if (req.query.workspaceId) filter.workspaceId = req.query.workspaceId;
+
+    const foods = await Food.find(filter)
+      .populate('menuId', 'name')
+      .populate('workspaceId', 'name')
+
     res.json({ foods });
   } catch (error) {
     console.error("Error fetching food items:", error);

@@ -1,5 +1,4 @@
 
-
 import mongoose from 'mongoose';
 
 const subCategorySchema = new mongoose.Schema(
@@ -7,7 +6,10 @@ const subCategorySchema = new mongoose.Schema(
     name: {
       type: String,
       required: true,
-      unique: true,
+    },
+    image: {
+      type: String,
+      required: true,
     },
     categoryId: {
       type: mongoose.Schema.Types.ObjectId,

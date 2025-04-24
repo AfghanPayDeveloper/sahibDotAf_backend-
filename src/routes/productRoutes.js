@@ -3,6 +3,7 @@ import multer from "multer";
 import Product from "../models/Product.js";
 import Category from "../models/Category.js";
 import SubCategory from "../models/SubCategory.js";
+import { sanitizeDescription } from '../controllers/productController.js';
 import {
   authenticateToken as authenticate,
   authorizeRole,
@@ -16,9 +17,14 @@ import {
   createProductCategory,
   createProductSubCategory,
   deleteProduct,
+  updateCategory,
   getAllProducts,
+  searchProducts,
+  deleteSubCategory,
   getProductCategories,
+  updateSubCategory,
   getProducts,
+  deleteCategory,
   getProductSubCategories,
   unApproveProduct,
   updateProduct,
@@ -60,11 +66,11 @@ router.use(authenticate);
 
 router.post(
   "/",
-
   upload.fields([
     { name: "mainImage", maxCount: 1 },
     { name: "galleryImages", maxCount: 5 },
   ]),
+  sanitizeDescription,
   createProduct
 );
 
@@ -76,25 +82,53 @@ router.patch("/:id/unapprove", authorizeRole("superadmin"), unApproveProduct);
 
 router.delete("/:id", deleteProduct);
 
+
+
 router.put(
   "/:id",
   upload.fields([
     { name: "mainImage", maxCount: 1 },
     { name: "galleryImages", maxCount: 5 },
   ]),
+  sanitizeDescription,
   updateProduct
 );
 
-router.post("/category", createProductCategory);
+router.post(
+  "/category", 
+  upload.single('image'),
+  createProductCategory
+);
+router.put('/category/:id', 
+  upload.single('image'), 
+  updateCategory
+);
 
+router.delete('/category/:id', 
+  authorizeRole('superadmin'),
+  deleteCategory
+);
+
+router.delete("/subcategory/:id", deleteSubCategory);
+router.put(
+  "/subcategory/:id",
+  upload.single('image'),
+  updateSubCategory
+);
 router.get("/category", getProductCategories);
 
-router.post("/subcategory", createProductSubCategory);
+router.post(
+  "/subcategory",
+  upload.single('image'), 
+  createProductSubCategory
+);
+
+router.get('/search', authenticate, searchProducts);
 
 router.get("/subcategory", getProductSubCategories);
 
-router.get("/all", authorizeRole("superadmin"), getAllProducts);
-
+// router.get("/all", authorizeRole("superadmin"), getAllProducts);
+router.get("/all",  getAllProducts);
 router.patch("/:id/activate", activateProduct);
 
 // router.delete("/:id", authorizeRole("superadmin"), async (req, res) => {
