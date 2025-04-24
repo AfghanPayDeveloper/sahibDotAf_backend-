@@ -27,11 +27,16 @@ router.use('/workspace', workspaceRoutes);
 router.use('/service', serviceRoutes);
 router.use('/room', roomRoutes);
 router.use('/hall', hallRoutes);
-router.use('/', viewRoutes);
+router.use('/views', viewRoutes);
 router.use('/', mainSLiderRoutes);
 router.use('/chat', chatRouter);
 router.use('/notifications', notificationRouter);
 
 router.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
+router.get("/", async (req, res) => {
+    res.status(200).json({ message: "Welcome  to the Backend of Sahib.af" });
+});
+
 
 export default router;
