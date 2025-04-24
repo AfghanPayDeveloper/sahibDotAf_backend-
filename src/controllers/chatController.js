@@ -260,15 +260,18 @@ export const createChatAndSendMessage = async (req, res) => {
 }
 
 export const sendMessage = async (req, res) => {
-    const { content, mediaType, reactions, receiverId } = req.body;
+    const { content, messageType, reactions, receiverId } = req.body;
     const userId = req.user.id;
     const { chatId } = req.params;
     console.log(req.body)
+    console.log(req.files)
 
     try {
         if (!content && !req.files) {
             return res.status(400).json({ error: 'Content or media is required' });
         }
+
+        const mediaUrls = (req.files || []).map(f => `/${f.filename}`);
 
         let chatToSendMessage = await Chat.findOne({
             _id: chatId,
@@ -279,17 +282,12 @@ export const sendMessage = async (req, res) => {
             return res.status(404).json({ error: 'Chat not found' });
         }
 
-        let mediaUrl = null;
-        if (req.file) {
-            mediaUrl = `/uploads/${req.file.filename}`;
-        }
-
         const newMessage = new Message({
             sender: userId,
             chat: chatToSendMessage._id,
             content,
-            mediaUrl,
-            mediaType: mediaType || 'none',
+            mediaUrls,
+            messageType: messageType || 'none',
             reactions: reactions || [],
         });
 
@@ -298,15 +296,15 @@ export const sendMessage = async (req, res) => {
         chatToSendMessage.lastMessage = savedMessage._id;
         await chatToSendMessage.save();
 
-        let otherUser = chatToSendMessage.participants.find(p => p._id.toString() !== userId);
+        let otherUser = chatToSendMessage.participants.find(p => p.toString() !== userId);
         const userSocket = userSockets[otherUser._id];
         if (userSocket) {
-            userSocket.emit('receiveMessage', { ...savedMessage.toJSON(), isYou: false });
+            userSocket.emit('receive_message', { ...savedMessage.toJSON(), isYou: false });
         } else {
             console.log(`${otherUser._id} is offline `, "💀💀💀");
         }
 
-        res.status(201).json(savedMessage);
+        res.status(201).json({message: {...savedMessage.toJSON(), isYou: true}, chat: chatToSendMessage});
     } catch (error) {
         console.error('Error sending message:', error);
         res.status(500).json({ error: 'Failed to send message' });
