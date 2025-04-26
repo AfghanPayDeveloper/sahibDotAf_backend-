@@ -12,6 +12,7 @@ import hallRoutes from './hallRoutes.js';
 import viewRoutes from './viewRoutes.js';
 import mainSLiderRoutes from './mainSliderRoutes.js';
 import notificationRouter from './notificationRoutes.js';
+import workspaceRoutes1 from './workspaceRoutes1.js'
 import chatRouter from './chatRoutes.js';
 
 const router = express.Router();
@@ -24,6 +25,7 @@ router.use('/products', productRoutes);
 router.use('/food', foodRoutes);
 router.use('/location', locationRoutes);
 router.use('/workspace', workspaceRoutes);
+router.use('./workspace1', workspaceRoutes1);
 router.use('/service', serviceRoutes);
 router.use('/room', roomRoutes);
 router.use('/hall', hallRoutes);

@@ -19,7 +19,7 @@ export const updateAuthenticatedUser = async (req, res) => {
 
 
     if (file) {
-      userData.profileImage = `/uploads/profileImages/${file.filename}`;
+      userData.profileImage = `/uploads/profiles/${file.filename}`;
 
 
       const user = await UserService.getUserById(req.user.id);

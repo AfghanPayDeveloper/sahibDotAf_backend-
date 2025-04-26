@@ -284,9 +284,24 @@ export const deleteProduct = async (req, res) => {
 };
 
 
+export const getProductById = async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id)
+    .populate('categoryId', 'name')
+    .populate('subcategoryId', 'name')
+    .populate({
+      path: 'workspaceId',
+      select: 'name address userId whatsappNumber' 
+    });
 
-
-
+    if (!product) return res.status(404).json({ error: "Product not found" });
+    
+    res.json({ product });
+  } catch (error) {
+    console.error("Error fetching product:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+};
 export const searchProducts = async (req, res) => {
   try {
     const { query, category } = req.query;
@@ -617,18 +632,18 @@ export const getProductSubCategories = async (req, res) => {
 
 export const getAllProducts = async (req, res) => {
   try {
-    const products = await Product.find();
-    const formattedProducts = products.map((product) => ({
-      ...product.toObject(),
-      status: product.isApproved ? "approved" : "pending",
-    }));
+    const products = await Product.find()
+      .populate('categoryId', 'name')
+      .populate('subcategoryId', 'name')
+      .populate('workspaceId');
 
-    res.json({ products: formattedProducts });
+    res.json({ products });
   } catch (error) {
-    console.error("Error fetching all products:", error);
-    res.status(500).json({ error: "Failed to retrieve all products" });
+    console.error("Error fetching products:", error);
+    res.status(500).json({ error: "Server error" });
   }
 };
+
 
 export const activateProduct = async (req, res) => {
   const { id } = req.params;

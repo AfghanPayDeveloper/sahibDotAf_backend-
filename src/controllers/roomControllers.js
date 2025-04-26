@@ -42,7 +42,7 @@ export const createRoom = async (req, res) => {
             const notification = new Notification({
                 to: admin._id,
                 title: `Room Added`,
-                content: `${req.user.fullName} Added (${newRoom.roomName}) Room.`,
+                content: `${req.user.fullName} Added (${newRoom.roomName}) Room.`, from: req.user.id
             });
             await notification.save();
 
