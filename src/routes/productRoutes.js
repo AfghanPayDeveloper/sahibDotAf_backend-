@@ -4,6 +4,7 @@ import Product from "../models/Product.js";
 import Category from "../models/Category.js";
 import SubCategory from "../models/SubCategory.js";
 import { sanitizeDescription } from '../controllers/productController.js';
+import { validateObjectId } from "../middleware/ValidateObjectId.js";
 import {
   authenticateToken as authenticate,
   authorizeRole,
@@ -21,6 +22,7 @@ import {
   getAllProducts,
   searchProducts,
   deleteSubCategory,
+  getProductById,
   getProductCategories,
   updateSubCategory,
   getProducts,
@@ -124,11 +126,13 @@ router.post(
 );
 
 router.get('/search', authenticate, searchProducts);
-
 router.get("/subcategory", getProductSubCategories);
+router.get("/all",  getAllProducts);
+router.get('/:id', validateObjectId, getProductById);
+
 
 // router.get("/all", authorizeRole("superadmin"), getAllProducts);
-router.get("/all",  getAllProducts);
+
 router.patch("/:id/activate", activateProduct);
 
 // router.delete("/:id", authorizeRole("superadmin"), async (req, res) => {

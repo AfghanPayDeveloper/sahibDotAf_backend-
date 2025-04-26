@@ -13,6 +13,7 @@ import {
   getWorkspaces,
   updateWorkspace,
 } from "../controllers/workspaceController.js";
+
 const router = express.Router();
 
 const storage = multer.diskStorage({
@@ -39,7 +40,6 @@ router.put("/workspaceGroups/:id", updateWorkspaceGroup);
 router.delete("/workspaceGroups/:id", deleteWorkspaceGroup);
 
 router.get("/:id", getWorkspaceById);
-
 router.delete("/:id", deleteWorkspace);
 
 router.post(

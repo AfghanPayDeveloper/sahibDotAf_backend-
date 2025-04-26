@@ -3,6 +3,7 @@ import WorkspaceGroup from "../models/WorkspaceGroup.js";
 import Notification from "../models/Notification.js";
 import User from "../models/User.js";
 import sendNotification from "../utils/sendNotification.js";
+import mongoose from "mongoose";
 
 export const getWorkspaceGroupById = async (req, res) => {
   try {
@@ -76,6 +77,65 @@ export const getWorkspaceById = async (req, res) => {
   } catch (error) {
     console.error("Error fetching workspace:", error);
     res.status(500).json({ message: "Error fetching workspace", error });
+  }
+};
+
+
+export const getWorkspaceById1 = async (req, res) => {
+  try {
+    const workspaceId = req.params.id;
+
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(workspaceId)) {
+      return res.status(400).json({ message: "Invalid workspace ID format" });
+    }
+
+    const query = { _id: workspaceId };
+
+    // Add access control for non-superadmins
+    if (req.user.role !== "superadmin") {
+      query.userId = req.user._id; // Use _id instead of id for consistency
+    }
+
+    const workspace = await Workspace.findById(workspaceId)
+    .populate({
+      path: 'userId',
+      model: 'User',
+      select: 'fullName profileImage phoneNumber isActive',
+      match: { isActive: true } // Match on correct field
+    })
+    .populate("provinceId districtId countryId", "name")
+    .lean();
+
+    if (!workspace) {
+      return res.status(404).json({ 
+        message: "Workspace not found or access denied",
+        errorCode: "WORKSPACE_NOT_FOUND"
+      });
+    }
+
+    const publicWorkspace = {
+      ...workspace,
+      certificationFile: undefined,
+      userId: {
+        fullName: workspace.userId?.fullName,
+        profileImage: workspace.userId?.profileImage,
+        phoneNumber: workspace.userId?.phoneNumber,
+        whatsappNumber: workspace.userId?.whatsappNumber
+      }
+    };
+
+    // Sanitize response
+    delete workspace.__v;
+    if (workspace.userId?.password) delete workspace.userId.password;
+
+    res.status(200).json(publicWorkspace);
+  } catch (error) {
+    console.error("Error fetching workspace:", error);
+    res.status(500).json({
+      message: "Internal server error",
+      errorCode: "SERVER_ERROR"
+    });
   }
 };
 
