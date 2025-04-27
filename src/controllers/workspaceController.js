@@ -42,8 +42,15 @@ export const getWorkspaceGroups = async (req, res) => {
 };
 
 export const getWorkspaces = async (req, res) => {
+  const { workspaceGroupId, userId } = req.query
   try {
-    const filter = req.user.role === "superadmin" ? {} :{ userId: req.user.id};
+    let filter = {};
+    if (workspaceGroupId) {
+      filter.workspaceGroupId = workspaceGroupId
+    }
+    if (userId) {
+      filter.userId = userId
+    }
     const workspaces = await Workspace.find(filter).populate(
       "workspaceGroupId userId provinceId districtId countryId"
     );
@@ -59,7 +66,7 @@ export const getWorkspaceById = async (req, res) => {
 
     const query = { _id: workspaceId };
 
- 
+
     if (req.user.role !== "superadmin") {
       query.userId = req.user.id;
     }
@@ -98,17 +105,17 @@ export const getWorkspaceById1 = async (req, res) => {
     }
 
     const workspace = await Workspace.findById(workspaceId)
-    .populate({
-      path: 'userId',
-      model: 'User',
-      select: 'fullName profileImage phoneNumber isActive',
-      match: { isActive: true } // Match on correct field
-    })
-    .populate("provinceId districtId countryId", "name")
-    .lean();
+      .populate({
+        path: 'userId',
+        model: 'User',
+        select: 'fullName profileImage phoneNumber isActive',
+        match: { isActive: true } // Match on correct field
+      })
+      .populate("provinceId districtId countryId", "name")
+      .lean();
 
     if (!workspace) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         message: "Workspace not found or access denied",
         errorCode: "WORKSPACE_NOT_FOUND"
       });
@@ -285,7 +292,7 @@ export const deleteWorkspace = async (req, res) => {
   try {
     const workspace = await Workspace.findById(req.params.id);
 
-    if ( !workspace || (req.user.role !== "superadmin" && workspace.userId.toString() !== req.user.id)) {
+    if (!workspace || (req.user.role !== "superadmin" && workspace.userId.toString() !== req.user.id)) {
       return res
         .status(404)
         .json({ message: "Workspace not found or access denied" });
