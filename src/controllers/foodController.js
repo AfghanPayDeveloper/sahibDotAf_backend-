@@ -300,6 +300,7 @@ export const createMenu = async (req, res) => {
 };
 
 export const getMenus = async (req, res) => {
+  const {workspaceId} = req.query;
   try {
     const menus = await Menu.find();
     res.json({ menus });
