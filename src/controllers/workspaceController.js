@@ -92,9 +92,9 @@ export const getWorkspaceById1 = async (req, res) => {
 
     const query = { _id: workspaceId };
 
-    // Add access control for non-superadmins
+
     if (req.user.role !== "superadmin") {
-      query.userId = req.user._id; // Use _id instead of id for consistency
+      query.userId = req.user._id;
     }
 
     const workspace = await Workspace.findById(workspaceId)
@@ -102,7 +102,7 @@ export const getWorkspaceById1 = async (req, res) => {
       path: 'userId',
       model: 'User',
       select: 'fullName profileImage phoneNumber isActive',
-      match: { isActive: true } // Match on correct field
+      match: { isActive: true } 
     })
     .populate("provinceId districtId countryId", "name")
     .lean();

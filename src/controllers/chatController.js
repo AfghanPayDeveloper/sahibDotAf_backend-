@@ -164,13 +164,15 @@ export const getChats = async (req, res) => {
         const formattedChats = chats.map(chat => {
             if (!chat.isGroup) {
                 const otherUser = chat.participants.find(p => p._id.toString() !== userId);
+              if (otherUser) {
                 return {
                     ...chat.toJSON(),
                     chatName: otherUser.fullName,
                     chatProfile: otherUser.profileImage
                 };
+              }
             }
-            return chat; // For group chats, keep as is or handle differently
+            return chat; 
         });
 
         res.status(200).json({ chats: formattedChats });
