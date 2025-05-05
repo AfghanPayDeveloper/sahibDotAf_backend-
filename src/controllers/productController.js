@@ -18,7 +18,7 @@ import fs from "fs";
 
 export const getProducts = async (req, res) => {
   const { workspaceId, approved, categoryId, subcategoryId, minPrice, maxPrice } = req.query;
-  const userRole = req.user.role;
+  const userRole = req.user?.role;
 
   try {
     const filter = { workspaceId };

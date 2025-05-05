@@ -5,7 +5,7 @@ import Product from '../models/Product.js';
 const router = express.Router();
 
 
-router.post('/views/website', async (req, res) => {
+router.post('/website', async (req, res) => {
     try {
         await WebsiteView.updateOne({}, { $inc: { count: 1 } }, { upsert: true });
         res.status(200).json({ message: 'Website view incremented' });
@@ -15,7 +15,7 @@ router.post('/views/website', async (req, res) => {
 });
 
 
-router.post('/views/product/:id', async (req, res) => {
+router.post('/product/:id', async (req, res) => {
     try {
         const { id } = req.params;
         await Product.findByIdAndUpdate(id, { $inc: { viewCount: 1 } });
@@ -26,7 +26,7 @@ router.post('/views/product/:id', async (req, res) => {
 });
 
 
-router.get('/views/website', async (req, res) => {
+router.get('/website', async (req, res) => {
     try {
         const viewData = await WebsiteView.findOne({});
         const count = viewData?.count || 0; 

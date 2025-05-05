@@ -64,6 +64,8 @@ const deleteFiles = (files) => {
   });
 };
 
+router.get("/", getProducts);
+
 router.use(authenticate);
 
 router.post(
@@ -75,8 +77,6 @@ router.post(
   sanitizeDescription,
   createProduct
 );
-
-router.get("/", getProducts);
 
 router.patch("/:id/approve", authorizeRole("superadmin"), approveProduct);
 
