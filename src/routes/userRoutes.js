@@ -57,7 +57,18 @@ router.get('/all', authenticateToken, async (req, res) => {
     if (req.user.role !== 'superadmin') {
       return res.status(403).json({ message: 'Access denied' });
     }
-    const users = await User.find().select('-password');
+
+    const { query } = req.query;
+    const filter = query ? {
+      $or: [
+        { fullName: { $regex: query, $options: 'i' } },
+        { email: { $regex: query, $options: 'i' } },
+        { whatsapp: { $regex: query, $options: 'i' } },
+        { phone: { $regex: query, $options: 'i' } },
+      ]
+    } : {}
+    
+    const users = await User.find(filter).select('-password');
     res.json(users);
   } catch (error) {
     res.status(500).json({ message: error.message });

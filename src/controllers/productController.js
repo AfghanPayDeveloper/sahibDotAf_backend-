@@ -22,7 +22,7 @@ export const getProducts = async (req, res) => {
 
   try {
     const filter = { workspaceId };
-   
+
     if (userRole !== "superadmin") {
       if (!workspaceId) {
         return res
@@ -34,7 +34,7 @@ export const getProducts = async (req, res) => {
     if (approved === "true") {
       filter.isApproved = true;
     }
-    if (categoryId)    filter.categoryId    = categoryId;
+    if (categoryId) filter.categoryId = categoryId;
     if (subcategoryId) filter.subcategoryId = subcategoryId;
 
 
@@ -287,15 +287,15 @@ export const deleteProduct = async (req, res) => {
 export const getProductById = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id)
-    .populate('categoryId', 'name')
-    .populate('subcategoryId', 'name')
-    .populate({
-      path: 'workspaceId',
-      select: 'name address userId whatsappNumber' 
-    });
+      .populate('categoryId', 'name')
+      .populate('subcategoryId', 'name')
+      .populate({
+        path: 'workspaceId',
+        select: 'name address userId whatsappNumber'
+      });
 
     if (!product) return res.status(404).json({ error: "Product not found" });
-    
+
     res.json({ product });
   } catch (error) {
     console.error("Error fetching product:", error);
@@ -310,12 +310,12 @@ export const searchProducts = async (req, res) => {
 
     if (query) {
       searchFilter.$or = [
-        { productName: { $regex: query, $options: 'i' } }, 
+        { productName: { $regex: query, $options: 'i' } },
         { description: { $regex: query, $options: 'i' } }
       ];
     }
 
- 
+
     if (category) {
       const categoryObj = await Category.findOne({ name: { $regex: new RegExp(`^${category}$`, 'i') } });
       if (!categoryObj) {
@@ -433,7 +433,7 @@ export const createProductCategory = async (req, res) => {
   }
 
   try {
-    const newCategory = new Category({ 
+    const newCategory = new Category({
       name,
       image: `/uploads/${req.file.filename}`
     });
@@ -513,9 +513,18 @@ export const updateCategory = async (req, res) => {
 };
 
 export const getProductCategories = async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 20;
+  const { query } = req.query;
+  const filter = query ? {
+    name: { $regex: query, $options: 'i' },
+  } : {}
+
   try {
-    const categories = await Category.find();
-    res.json({ categories });
+    const categories = await Category.find(filter).skip((page - 1) * page).limit(limit);
+    const total = await Product.countDocuments(filter)
+
+    res.json({ categories, total });
   } catch (error) {
     console.error("Error fetching categories:", error);
     res.status(500).json({ error: "Failed to retrieve categories" });
@@ -524,18 +533,18 @@ export const getProductCategories = async (req, res) => {
 
 
 export const createProductSubCategory = async (req, res) => {
-  console.log('Received files:', req.file); 
+  console.log('Received files:', req.file);
   console.log('Received body:', req.body);
   const { name, categoryId } = req.body;
 
   if (!name || !categoryId || !req.file) {
-    return res.status(400).json({ 
-      error: "Name, category ID, and image are required" 
+    return res.status(400).json({
+      error: "Name, category ID, and image are required"
     });
   }
 
   try {
-    const newSubCategory = new SubCategory({ 
+    const newSubCategory = new SubCategory({
       name,
       categoryId,
       image: `/uploads/${req.file.filename}`
@@ -582,9 +591,9 @@ export const updateSubCategory = async (req, res) => {
     subCategory.categoryId = categoryId || subCategory.categoryId;
     await subCategory.save();
 
-    res.status(200).json({ 
-      message: "SubCategory updated successfully", 
-      subcategory: subCategory 
+    res.status(200).json({
+      message: "SubCategory updated successfully",
+      subcategory: subCategory
     });
   } catch (error) {
     console.error("Error updating subcategory:", error);
@@ -631,19 +640,28 @@ export const getProductSubCategories = async (req, res) => {
 };
 
 export const getAllProducts = async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 20;
+  const { query } = req.query;
+  const filter = query ? {
+    productName: { $regex: query, $options: 'i' },
+  } : {}
+
+  const skip = (page - 1) * limit
   try {
-    const products = await Product.find()
+    const products = await Product.find(filter).skip(skip).limit(limit)
       .populate('categoryId', 'name')
       .populate('subcategoryId', 'name')
       .populate('workspaceId');
 
-    res.json({ products });
+    const total = await Product.countDocuments(filter)
+
+    res.json({ products, total });
   } catch (error) {
     console.error("Error fetching products:", error);
     res.status(500).json({ error: "Server error" });
   }
 };
-
 
 export const activateProduct = async (req, res) => {
   const { id } = req.params;
@@ -654,7 +672,7 @@ export const activateProduct = async (req, res) => {
       return res.status(404).json({ error: "Product not found" });
     }
 
-    product.isActive = true;
+    product.isActive = !product.isActive;
     await product.save();
 
     res
@@ -665,3 +683,4 @@ export const activateProduct = async (req, res) => {
     res.status(500).json({ error: "Failed to activate product" });
   }
 };
+

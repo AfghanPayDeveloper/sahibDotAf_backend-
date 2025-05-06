@@ -24,7 +24,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, 
+  limits: { fileSize: 10 * 1024 * 1024 },
 });
 
 
@@ -138,11 +138,28 @@ router.patch('/:id/approve', authenticate, async (req, res) => {
 
 
 
+router.get('/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const service = await Service.findById(id);
+    if (!service) {
+      return res.status(404).json({ error: 'Service not found' });
+    }
+
+    res.status(200).json(service);
+  } catch (error) {
+    console.error('Error updating service:', error);
+    res.status(500).json({ error: 'Failed to update service' });
+  }
+});
+
+
 router.put('/:id', authenticate, upload.fields([{ name: 'serviceThumbnailImage', maxCount: 1 }, { name: 'serviceImages', maxCount: 5 }]), async (req, res) => {
   const { id } = req.params;
-  const { workspaceId,   serviceName,  serviceDescription, deletedServiceImages } = req.body;
+  const { workspaceId, serviceName, serviceDescription, deletedServiceImages } = req.body;
 
-  if (!workspaceId  || !serviceName) {
+  if (!workspaceId || !serviceName) {
     return res.status(400).json({ error: 'Required fields are missing: workspaceId, serviceName' });
   }
 
@@ -152,7 +169,7 @@ router.put('/:id', authenticate, upload.fields([{ name: 'serviceThumbnailImage',
       return res.status(404).json({ error: 'Service not found' });
     }
 
-   
+
     if (req.files['serviceThumbnailImage']) {
       if (service.serviceThumbnailImage) {
         const oldServiceThumbnailImagePath = path.join(process.cwd(), service.serviceThumbnailImage);
@@ -162,9 +179,9 @@ router.put('/:id', authenticate, upload.fields([{ name: 'serviceThumbnailImage',
       }
       service.serviceThumbnailImage = `/uploads/${req.files['serviceThumbnailImage'][0].filename}`;
     }
-    
 
-  
+
+
     if (deletedServiceImages && Array.isArray(deletedServiceImages)) {
       deletedServiceImages.forEach((ServiceImagesPath) => {
         const oldServiceImagesPath = path.join(process.cwd(), ServiceImagesPath);
