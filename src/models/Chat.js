@@ -5,6 +5,7 @@ const chatSchema = new mongoose.Schema({
   isGroup: { type: Boolean, default: false },
   chatName: { type: String },
   participants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  deletedFor: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   adminIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   chatProfile: { type: String },
   lastMessage: { type: mongoose.Schema.Types.ObjectId, ref: 'Message' }

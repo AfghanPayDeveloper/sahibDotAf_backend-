@@ -17,7 +17,8 @@ const messageSchema = new mongoose.Schema({
   }],
   replyTo: { type: mongoose.Schema.Types.ObjectId, ref: 'Message' },
   isDeleted: { type: Boolean, default: false },
-  editedAt: { type: Date }
+  editedAt: { type: Date },
+  deletedFor: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 }, { timestamps: true });
 
 export default mongoose.model('Message', messageSchema);
