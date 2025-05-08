@@ -29,8 +29,12 @@ export const getWorkspaceGroupById = async (req, res) => {
 };
 
 export const getWorkspaceGroups = async (req, res) => {
+  const { query } = req.query;
+
+  const filter = query ? { workspaceName: { $regex: query, $options: "i" } } : {};
+
   try {
-    const workspaceGroups = await WorkspaceGroup.find();
+    const workspaceGroups = await WorkspaceGroup.find(filter);
     if (!workspaceGroups || workspaceGroups.length === 0) {
       return res.status(404).json({ message: "No workspace groups found" });
     }
@@ -42,14 +46,17 @@ export const getWorkspaceGroups = async (req, res) => {
 };
 
 export const getWorkspaces = async (req, res) => {
-  const { workspaceGroupId, userId } = req.query
+  const { workspaceGroupId, userId, query } = req.query;
   try {
     let filter = {};
     if (workspaceGroupId) {
-      filter.workspaceGroupId = workspaceGroupId
+      filter.workspaceGroupId = workspaceGroupId;
     }
     if (userId) {
-      filter.userId = userId
+      filter.userId = userId;
+    }
+    if (query) {
+      filter.name = { $regex: query, $options: "i" };
     }
     const workspaces = await Workspace.find(filter).populate(
       "workspaceGroupId userId provinceId districtId countryId"
@@ -66,13 +73,13 @@ export const getWorkspaceById = async (req, res) => {
 
     const query = { _id: workspaceId };
 
-
     if (req.user.role !== "superadmin") {
       query.userId = req.user.id;
     }
 
-    const workspace = await Workspace.findOne(query)
-      .populate("workspaceGroupId userId provinceId districtId countryId");
+    const workspace = await Workspace.findOne(query).populate(
+      "workspaceGroupId userId provinceId districtId countryId"
+    );
 
     if (!workspace) {
       return res
@@ -86,7 +93,6 @@ export const getWorkspaceById = async (req, res) => {
     res.status(500).json({ message: "Error fetching workspace", error });
   }
 };
-
 
 export const getWorkspaceById1 = async (req, res) => {
   try {
@@ -106,10 +112,10 @@ export const getWorkspaceById1 = async (req, res) => {
 
     const workspace = await Workspace.findById(workspaceId)
       .populate({
-        path: 'userId',
-        model: 'User',
-        select: 'fullName profileImage phoneNumber isActive',
-        match: { isActive: true } // Match on correct field
+        path: "userId",
+        model: "User",
+        select: "fullName profileImage phoneNumber isActive",
+        match: { isActive: true }, // Match on correct field
       })
       .populate("provinceId districtId countryId", "name")
       .lean();
@@ -117,7 +123,7 @@ export const getWorkspaceById1 = async (req, res) => {
     if (!workspace) {
       return res.status(404).json({
         message: "Workspace not found or access denied",
-        errorCode: "WORKSPACE_NOT_FOUND"
+        errorCode: "WORKSPACE_NOT_FOUND",
       });
     }
 
@@ -128,8 +134,8 @@ export const getWorkspaceById1 = async (req, res) => {
         fullName: workspace.userId?.fullName,
         profileImage: workspace.userId?.profileImage,
         phoneNumber: workspace.userId?.phoneNumber,
-        whatsappNumber: workspace.userId?.whatsappNumber
-      }
+        whatsappNumber: workspace.userId?.whatsappNumber,
+      },
     };
 
     // Sanitize response
@@ -141,7 +147,7 @@ export const getWorkspaceById1 = async (req, res) => {
     console.error("Error fetching workspace:", error);
     res.status(500).json({
       message: "Internal server error",
-      errorCode: "SERVER_ERROR"
+      errorCode: "SERVER_ERROR",
     });
   }
 };
@@ -183,7 +189,7 @@ export const createWorkspace = async (req, res) => {
         to: admin._id,
         title: `New workspace created`,
         content: `${req.user.fullName} created workspace (${workspace.name}).`,
-        from: req.user.id
+        from: req.user.id,
       });
       await notification.save();
 
@@ -245,7 +251,7 @@ export const updateWorkspace = async (req, res) => {
         to: admin._id,
         title: `Workspace Updated`,
         content: `${req.user.fullName} updated workspace (${workspace.name}).`,
-        from: req.user.id
+        from: req.user.id,
       });
       await notification.save();
 
@@ -274,7 +280,7 @@ export const createWorkspaceGroup = async (req, res) => {
         to: admin._id,
         title: `New Workspace Group Created`,
         content: `${req.user.fullName} created workspace group (${newGroup.name}).`,
-        from: req.user.id
+        from: req.user.id,
       });
       await notification.save();
 
@@ -292,7 +298,11 @@ export const deleteWorkspace = async (req, res) => {
   try {
     const workspace = await Workspace.findById(req.params.id);
 
-    if (!workspace || (req.user.role !== "superadmin" && workspace.userId.toString() !== req.user.id)) {
+    if (
+      !workspace ||
+      (req.user.role !== "superadmin" &&
+        workspace.userId.toString() !== req.user.id)
+    ) {
       return res
         .status(404)
         .json({ message: "Workspace not found or access denied" });
@@ -304,7 +314,7 @@ export const deleteWorkspace = async (req, res) => {
       to: to?._id,
       title: `Workspace (${deletedWorkspace.name}) deleted`,
       content: `${req.user.fullName} deleted workspace (${workspace.name}).`,
-      from: req.user.id
+      from: req.user.id,
     });
 
     await notification.save();
@@ -315,7 +325,6 @@ export const deleteWorkspace = async (req, res) => {
     res.status(500).json({ message: "Error deleting workspace", error });
   }
 };
-
 
 export const updateWorkspaceGroup = async (req, res) => {
   try {
@@ -342,7 +351,7 @@ export const updateWorkspaceGroup = async (req, res) => {
         to: admin._id,
         title: `Workspace Group Updated`,
         content: `${req.user.fullName} updated workspace group (${updatedGroup.workspaceName}).`,
-        from: req.user.id
+        from: req.user.id,
       });
       await notification.save();
       sendNotification(admin._id, { ...notification.toJSON(), from: req.user });
@@ -354,7 +363,6 @@ export const updateWorkspaceGroup = async (req, res) => {
     res.status(500).json({ message: "Error updating workspace group", error });
   }
 };
-
 
 export const deleteWorkspaceGroup = async (req, res) => {
   try {
@@ -381,7 +389,7 @@ export const deleteWorkspaceGroup = async (req, res) => {
         to: admin._id,
         title: `Workspace Group Deleted`,
         content: `${req.user.fullName} deleted workspace group (${group.workspaceName}).`,
-        from: req.user.id
+        from: req.user.id,
       });
       await notification.save();
       sendNotification(admin._id, { ...notification.toJSON(), from: req.user });

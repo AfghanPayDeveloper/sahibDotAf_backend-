@@ -48,7 +48,7 @@ export const createFood = async (req, res) => {
         to: admin._id,
         title: `New Food created`,
         content: `${req.user.fullName} created Food (${newFood.name}).`,
-        from: req.user.id
+        from: req.user.id,
       });
       await notification.save();
 
@@ -65,25 +65,28 @@ export const createFood = async (req, res) => {
 };
 
 export const getFoods = async (req, res) => {
+  const { query } = req.query;
+
   try {
     let filter = {};
+    if (query) {
+      filter.name = { $regex: query, $options: "i" };
+    }
 
-
-    if (req.user.role !== 'superadmin') {
+    if (req.user.role !== "superadmin") {
       if (!req.query.menuId && !req.query.workspaceId) {
-        return res.status(400).json({ 
-          error: "Either menuId or workspaceId is required" 
+        return res.status(400).json({
+          error: "Either menuId or workspaceId is required",
         });
       }
     }
-
 
     if (req.query.menuId) filter.menuId = req.query.menuId;
     if (req.query.workspaceId) filter.workspaceId = req.query.workspaceId;
 
     const foods = await Food.find(filter)
-      .populate('menuId', 'name')
-      .populate('workspaceId', 'name')
+      .populate("menuId", "name")
+      .populate("workspaceId", "name");
 
     res.json({ foods });
   } catch (error) {
@@ -126,7 +129,7 @@ export const updateFood = async (req, res) => {
         to: admin._id,
         title: `Food updated`,
         content: `${req.user.fullName} updated Food (${food.name}).`,
-        from: req.user.id
+        from: req.user.id,
       });
       await notification.save();
 
@@ -165,11 +168,14 @@ export const approveFood = async (req, res) => {
       to: food.workspaceId.userId,
       title: `Food Approved`,
       content: `(${food.name}) Food has been Approved by our Admin.`,
-      from: req.user.id
+      from: req.user.id,
     });
     await notification.save();
 
-    sendNotification(food.workspaceId.userId, { ...notification.toJSON(), from: req.user });
+    sendNotification(food.workspaceId.userId, {
+      ...notification.toJSON(),
+      from: req.user,
+    });
 
     res.status(200).json({ message: "Food item approved successfully", food });
   } catch (error) {
@@ -201,11 +207,14 @@ export const unapproveFood = async (req, res) => {
       to: food.workspaceId.userId,
       title: `Food Approved`,
       content: `(${food.name}) Food has been Unapproved by our Admin.`,
-      from: req.user.id
+      from: req.user.id,
     });
     await notification.save();
 
-    sendNotification(food.workspaceId.userId, { ...notification.toJSON(), from: req.user });
+    sendNotification(food.workspaceId.userId, {
+      ...notification.toJSON(),
+      from: req.user,
+    });
 
     res
       .status(200)
@@ -236,11 +245,14 @@ export const deleteFood = async (req, res) => {
         to: food.workspaceId.userId,
         title: `Food Deleted`,
         content: `(${food.name}) Food has been Deleted by ${req.user.fullName}.`,
-        from: req.user.id
+        from: req.user.id,
       });
       await notification.save();
 
-      sendNotification(food.workspaceId.userId, { ...notification.toJSON(), from: req.user });
+      sendNotification(food.workspaceId.userId, {
+        ...notification.toJSON(),
+        from: req.user,
+      });
     } else {
       const admin = await User.findOne({ role: "superadmin" });
       if (admin) {
@@ -248,11 +260,14 @@ export const deleteFood = async (req, res) => {
           to: admin._id,
           title: `Food Approved`,
           content: `(${food.name}) Food has been Deleted by ${req.user.fullName}.`,
-          from: req.user.id
+          from: req.user.id,
         });
         await notification.save();
 
-        sendNotification(admin._id, { ...notification.toJSON(), from: req.user });
+        sendNotification(admin._id, {
+          ...notification.toJSON(),
+          from: req.user,
+        });
       }
     }
 
@@ -284,7 +299,7 @@ export const createMenu = async (req, res) => {
         to: admin._id,
         title: `New Menu Created`,
         content: `${req.user.fullName} created Menu (${newMenu.name}).`,
-        from: req.user.id
+        from: req.user.id,
       });
       await notification.save();
 
@@ -300,9 +315,15 @@ export const createMenu = async (req, res) => {
 };
 
 export const getMenus = async (req, res) => {
-  const {workspaceId} = req.query;
+  const { workspaceId, query } = req.query;
+  const filter = query
+    ? {
+        name: { $regex: query, $options: "i" },
+      }
+    : {};
+
   try {
-    const menus = await Menu.find();
+    const menus = await Menu.find(filter);
     res.json({ menus });
   } catch (error) {
     console.error("Error fetching menus:", error);
@@ -338,7 +359,7 @@ export const updateMenu = async (req, res) => {
         to: admin._id,
         title: `Menu Updated`,
         content: `${req.user.fullName} updated menu (${menu.name}).`,
-        from: req.user.id
+        from: req.user.id,
       });
       await notification.save();
 
@@ -372,7 +393,7 @@ export const deleteMenu = async (req, res) => {
         to: admin._id,
         title: `Menu Deleted`,
         content: `(${menu.name}) Menu has been Deleted by ${req.user.fullName}.`,
-        from: req.user.id
+        from: req.user.id,
       });
       await notification.save();
 

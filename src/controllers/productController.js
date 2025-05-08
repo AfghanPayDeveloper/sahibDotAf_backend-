@@ -4,7 +4,7 @@ import Notification from "../models/Notification.js";
 import Product from "../models/Product.js";
 import User from "../models/User.js";
 import sendNotification from "../utils/sendNotification.js";
-import sanitizeHtml from 'sanitize-html';
+import sanitizeHtml from "sanitize-html";
 import express from "express";
 import multer from "multer";
 import Category from "../models/Category.js";
@@ -17,7 +17,14 @@ import path from "path";
 import fs from "fs";
 
 export const getProducts = async (req, res) => {
-  const { workspaceId, approved, categoryId, subcategoryId, minPrice, maxPrice } = req.query;
+  const {
+    workspaceId,
+    approved,
+    categoryId,
+    subcategoryId,
+    minPrice,
+    maxPrice,
+  } = req.query;
   const userRole = req.user?.role;
 
   try {
@@ -36,7 +43,6 @@ export const getProducts = async (req, res) => {
     }
     if (categoryId) filter.categoryId = categoryId;
     if (subcategoryId) filter.subcategoryId = subcategoryId;
-
 
     if (minPrice || maxPrice) {
       filter.newPrice = {};
@@ -57,33 +63,40 @@ export const getProducts = async (req, res) => {
   }
 };
 
-
-
-
-
 export const sanitizeDescription = (req, res, next) => {
   if (req.body.description) {
     req.body.description = sanitizeHtml(req.body.description, {
-      allowedTags: ['b', 'i', 'u', 'em', 'strong', 'p', 'br', 'ul', 'ol', 'li', 'a'],
+      allowedTags: [
+        "b",
+        "i",
+        "u",
+        "em",
+        "strong",
+        "p",
+        "br",
+        "ul",
+        "ol",
+        "li",
+        "a",
+      ],
       allowedAttributes: {
-        'a': ['href', 'target', 'rel'],
+        a: ["href", "target", "rel"],
       },
-      allowedSchemes: ['http', 'https', 'mailto'],
+      allowedSchemes: ["http", "https", "mailto"],
       transformTags: {
-        'a': (tagName, attribs) => ({
-          tagName: 'a',
+        a: (tagName, attribs) => ({
+          tagName: "a",
           attribs: {
             href: attribs.href,
-            target: '_blank',
-            rel: 'noopener noreferrer'
-          }
-        })
-      }
+            target: "_blank",
+            rel: "noopener noreferrer",
+          },
+        }),
+      },
     });
   }
   next();
 };
-
 
 const deleteFiles = (files) => {
   files.forEach((file) => {
@@ -254,7 +267,7 @@ export const deleteProduct = async (req, res) => {
           title: `Product Deleted`,
           from: req.user.id,
           content: `(${product.productName}) has been Deleted by Sahib's Team`,
-          from: req.user.id
+          from: req.user.id,
         });
         await notification.save();
 
@@ -268,11 +281,14 @@ export const deleteProduct = async (req, res) => {
           title: `Product Deleted`,
           from: req.user.id,
           content: `${req.user.fullName} deleted product (${product.productName}).`,
-          from: req.user.id
+          from: req.user.id,
         });
         await notification.save();
 
-        sendNotification(admin._id, { ...notification.toJSON(), from: req.user });
+        sendNotification(admin._id, {
+          ...notification.toJSON(),
+          from: req.user,
+        });
       }
     }
 
@@ -283,15 +299,14 @@ export const deleteProduct = async (req, res) => {
   }
 };
 
-
 export const getProductById = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id)
-      .populate('categoryId', 'name')
-      .populate('subcategoryId', 'name')
+      .populate("categoryId", "name")
+      .populate("subcategoryId", "name")
       .populate({
-        path: 'workspaceId',
-        select: 'name address userId whatsappNumber'
+        path: "workspaceId",
+        select: "name address userId whatsappNumber",
       });
 
     if (!product) return res.status(404).json({ error: "Product not found" });
@@ -307,17 +322,17 @@ export const searchProducts = async (req, res) => {
     const { query, category } = req.query;
     const searchFilter = {};
 
-
     if (query) {
       searchFilter.$or = [
-        { productName: { $regex: query, $options: 'i' } },
-        { description: { $regex: query, $options: 'i' } }
+        { productName: { $regex: query, $options: "i" } },
+        { description: { $regex: query, $options: "i" } },
       ];
     }
 
-
     if (category) {
-      const categoryObj = await Category.findOne({ name: { $regex: new RegExp(`^${category}$`, 'i') } });
+      const categoryObj = await Category.findOne({
+        name: { $regex: new RegExp(`^${category}$`, "i") },
+      });
       if (!categoryObj) {
         return res.json({ products: [] });
       }
@@ -325,20 +340,20 @@ export const searchProducts = async (req, res) => {
     }
 
     const products = await Product.find(searchFilter)
-      .populate('categoryId', 'name')
-      .populate('subcategoryId', 'name');
+      .populate("categoryId", "name")
+      .populate("subcategoryId", "name");
 
-    const formattedProducts = products.map(product => ({
+    const formattedProducts = products.map((product) => ({
       ...product.toObject(),
       category: product.categoryId?.name,
       subcategory: product.subcategoryId?.name,
-      status: product.isApproved ? 'approved' : 'pending'
+      status: product.isApproved ? "approved" : "pending",
     }));
 
     res.json({ products: formattedProducts });
   } catch (error) {
-    console.error('Error searching products:', error);
-    res.status(500).json({ error: 'Failed to perform search' });
+    console.error("Error searching products:", error);
+    res.status(500).json({ error: "Failed to perform search" });
   }
 };
 
@@ -411,7 +426,7 @@ export const updateProduct = async (req, res) => {
         to: admin._id,
         title: `Product updated`,
         content: `${req.user.fullName} updated (${product.productName}).`,
-        from: req.user.id
+        from: req.user.id,
       });
       await notification.save();
 
@@ -435,7 +450,7 @@ export const createProductCategory = async (req, res) => {
   try {
     const newCategory = new Category({
       name,
-      image: `/uploads/${req.file.filename}`
+      image: `/uploads/${req.file.filename}`,
     });
     await newCategory.save();
 
@@ -446,7 +461,7 @@ export const createProductCategory = async (req, res) => {
   } catch (error) {
     console.error("Error creating category:", error);
     if (req.file) {
-      const filePath = path.join(process.cwd(), 'uploads', req.file.filename);
+      const filePath = path.join(process.cwd(), "uploads", req.file.filename);
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
       }
@@ -454,7 +469,6 @@ export const createProductCategory = async (req, res) => {
     res.status(500).json({ error: "Failed to create category" });
   }
 };
-
 
 export const deleteCategory = async (req, res) => {
   const { id } = req.params;
@@ -464,7 +478,6 @@ export const deleteCategory = async (req, res) => {
     if (!category) {
       return res.status(404).json({ error: "Category not found" });
     }
-
 
     if (category.image) {
       const filePath = path.join(process.cwd(), category.image);
@@ -480,7 +493,6 @@ export const deleteCategory = async (req, res) => {
     res.status(500).json({ error: "Failed to delete category" });
   }
 };
-
 
 export const updateCategory = async (req, res) => {
   const { id } = req.params;
@@ -505,7 +517,9 @@ export const updateCategory = async (req, res) => {
     category.name = name || category.name;
     await category.save();
 
-    res.status(200).json({ message: "Category updated successfully", category });
+    res
+      .status(200)
+      .json({ message: "Category updated successfully", category });
   } catch (error) {
     console.error("Error updating category:", error);
     res.status(500).json({ error: "Failed to update category" });
@@ -516,13 +530,17 @@ export const getProductCategories = async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 20;
   const { query } = req.query;
-  const filter = query ? {
-    name: { $regex: query, $options: 'i' },
-  } : {}
+  const filter = query
+    ? {
+        name: { $regex: query, $options: "i" },
+      }
+    : {};
 
   try {
-    const categories = await Category.find(filter).skip((page - 1) * page).limit(limit);
-    const total = await Product.countDocuments(filter)
+    const categories = await Category.find(filter)
+      .skip((page - 1) * page)
+      .limit(limit);
+    const total = await Product.countDocuments(filter);
 
     res.json({ categories, total });
   } catch (error) {
@@ -531,15 +549,14 @@ export const getProductCategories = async (req, res) => {
   }
 };
 
-
 export const createProductSubCategory = async (req, res) => {
-  console.log('Received files:', req.file);
-  console.log('Received body:', req.body);
+  console.log("Received files:", req.file);
+  console.log("Received body:", req.body);
   const { name, categoryId } = req.body;
 
   if (!name || !categoryId || !req.file) {
     return res.status(400).json({
-      error: "Name, category ID, and image are required"
+      error: "Name, category ID, and image are required",
     });
   }
 
@@ -547,7 +564,7 @@ export const createProductSubCategory = async (req, res) => {
     const newSubCategory = new SubCategory({
       name,
       categoryId,
-      image: `/uploads/${req.file.filename}`
+      image: `/uploads/${req.file.filename}`,
     });
     await newSubCategory.save();
 
@@ -558,7 +575,7 @@ export const createProductSubCategory = async (req, res) => {
   } catch (error) {
     console.error("Error creating subcategory:", error);
     if (req.file) {
-      const filePath = path.join(process.cwd(), 'uploads', req.file.filename);
+      const filePath = path.join(process.cwd(), "uploads", req.file.filename);
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
       }
@@ -593,7 +610,7 @@ export const updateSubCategory = async (req, res) => {
 
     res.status(200).json({
       message: "SubCategory updated successfully",
-      subcategory: subCategory
+      subcategory: subCategory,
     });
   } catch (error) {
     console.error("Error updating subcategory:", error);
@@ -626,10 +643,13 @@ export const deleteSubCategory = async (req, res) => {
 };
 
 export const getProductSubCategories = async (req, res) => {
-  const { categoryId } = req.query;
+  const { categoryId, query } = req.query;
 
   try {
     const filter = categoryId ? { categoryId } : {};
+    if (query) {
+      filter.name = { $regex: query, $options: "i" };
+    }
     const subcategories = await SubCategory.find(filter);
 
     res.json({ subcategories });
@@ -643,18 +663,22 @@ export const getAllProducts = async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 20;
   const { query } = req.query;
-  const filter = query ? {
-    productName: { $regex: query, $options: 'i' },
-  } : {}
+  const filter = query
+    ? {
+        productName: { $regex: query, $options: "i" },
+      }
+    : {};
 
-  const skip = (page - 1) * limit
+  const skip = (page - 1) * limit;
   try {
-    const products = await Product.find(filter).skip(skip).limit(limit)
-      .populate('categoryId', 'name')
-      .populate('subcategoryId', 'name')
-      .populate('workspaceId');
+    const products = await Product.find(filter)
+      .skip(skip)
+      .limit(limit)
+      .populate("categoryId", "name")
+      .populate("subcategoryId", "name")
+      .populate("workspaceId");
 
-    const total = await Product.countDocuments(filter)
+    const total = await Product.countDocuments(filter);
 
     res.json({ products, total });
   } catch (error) {
@@ -683,4 +707,3 @@ export const activateProduct = async (req, res) => {
     res.status(500).json({ error: "Failed to activate product" });
   }
 };
-
