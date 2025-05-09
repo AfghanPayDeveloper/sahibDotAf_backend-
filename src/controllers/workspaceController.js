@@ -4,7 +4,7 @@ import Notification from "../models/Notification.js";
 import User from "../models/User.js";
 import sendNotification from "../utils/sendNotification.js";
 import mongoose from "mongoose";
-
+import sanitizeHtml from 'sanitize-html';
 export const getWorkspaceGroupById = async (req, res) => {
   try {
     const workspaceGroupId = req.params.id;
@@ -42,8 +42,18 @@ export const getWorkspaceGroups = async (req, res) => {
 };
 
 export const getWorkspaces = async (req, res) => {
+  const { workspaceGroupId, userId, query } = req.query;
   try {
     const filter = req.user.role === "superadmin" ? {} :{ userId: req.user.id};
+     if (workspaceGroupId) {
+      filter.workspaceGroupId = workspaceGroupId;
+    }
+    if (userId) {
+      filter.userId = userId;
+    }
+    if (query) {
+      filter.name = { $regex: query, $options: "i" };
+    }
     const workspaces = await Workspace.find(filter).populate(
       "workspaceGroupId userId provinceId districtId countryId"
     );
@@ -51,6 +61,28 @@ export const getWorkspaces = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: "Error fetching workspaces", error });
   }
+};
+export const sanitizeDescription = (req, res, next) => {
+  if (req.body.description) {
+    req.body.description = sanitizeHtml(req.body.description, {
+      allowedTags: ['b', 'i', 'u', 'em', 'strong', 'p', 'br', 'ul', 'ol', 'li', 'a'],
+      allowedAttributes: {
+        'a': ['href', 'target', 'rel'],
+      },
+      allowedSchemes: ['http', 'https', 'mailto'],
+      transformTags: {
+        'a': (tagName, attribs) => ({
+          tagName: 'a',
+          attribs: {
+            href: attribs.href,
+            target: '_blank',
+            rel: 'noopener noreferrer'
+          }
+        })
+      }
+    });
+  }
+  next();
 };
 
 export const getWorkspaceById = async (req, res) => {
@@ -206,47 +238,62 @@ export const createWorkspace = async (req, res) => {
 export const updateWorkspace = async (req, res) => {
   try {
     const { files, body } = req;
-
-    const images = files.images
-      ? files.images.map((file) => file.path.replace("\\\\", "/"))
-      : undefined;
-    const certificationFile = files.certificationFile
-      ? files.certificationFile[0].path.replace("\\\\", "/")
-      : undefined;
+    
+    // Handle deleted images - ensure it's always an array
+    let deletedImages = [];
+    if (Array.isArray(body.deletedImages)) {
+      deletedImages = body.deletedImages;
+    } else if (body.deletedImages) {
+      deletedImages = [body.deletedImages];
+    }
 
     const workspace = await Workspace.findById(req.params.id);
 
-    if (!workspace || workspace.userId.toString() !== req.user.id) {
-      return res
-        .status(404)
-        .json({ message: "Workspace not found or access denied." });
+    if (!workspace || (workspace.userId.toString() !== req.user.id && req.user.role !== "superadmin")) {
+      return res.status(404).json({ message: "Workspace not found or access denied." });
     }
 
-    const updateData = { ...body };
-    if (images) updateData.images = images;
-    if (certificationFile) updateData.certificationFile = certificationFile;
+ 
+    const normalizePath = (path) => path.replace(/\\/g, '/').toLowerCase();
+
+
+    let updatedImages = workspace.images.filter(img => {
+      const normalizedImg = normalizePath(img);
+      return !deletedImages.some(deleted => 
+        normalizePath(deleted) === normalizedImg
+      );
+    });
+
+
+    if (files.images) {
+      const newImages = files.images.map(file => 
+        file.path.replace(/\\/g, '/')
+      );
+      updatedImages = [...updatedImages, ...newImages];
+    }
+
+    const updateData = { 
+      ...body,
+      images: updatedImages,
+    };
+
+    if (files.certificationFile) {
+      updateData.certificationFile = files.certificationFile[0].path.replace(/\\/g, '/');
+    }
 
     const updatedWorkspace = await Workspace.findByIdAndUpdate(
       req.params.id,
       updateData,
       { new: true, runValidators: true }
-    );
+    ).populate("workspaceGroupId userId provinceId districtId countryId");
 
-    const admin = await User.findOne({ role: "superadmin" });
-    if (admin) {
-      const notification = new Notification({
-        to: admin._id,
-        title: `Workspace Updated`,
-        content: `${req.user.fullName} updated workspace (${workspace.name}).`,
-        from: req.user.id
-      });
-      await notification.save();
-
-      sendNotification(admin._id, { ...notification.toJSON(), from: req.user });
-    }
     res.status(200).json(updatedWorkspace);
   } catch (error) {
-    res.status(400).json({ message: "Error updating workspace", error });
+    console.error("Error updating workspace:", error);
+    res.status(400).json({ 
+      message: "Error updating workspace", 
+      error: error.message 
+    });
   }
 };
 

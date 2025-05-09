@@ -18,14 +18,35 @@ const deleteFiles = (files) => {
 
 export const getHalls = async (req, res) => {
     try {
-        const { workspaceId, approved } = req.query;
-
+       const { 
+    workspaceId,
+    isActive,
+    isApproved,
+    page = 1,
+    limit = 10,
+    search 
+  } = req.query;
+          const filter = { workspaceId };
+            if (isActive) filter.isActive = isActive === 'true';
+    if (isApproved) filter.isApproved = isApproved === 'true';
+    if (search) filter.hallName = { $regex: search, $options: 'i' };
         const query = { isDeleted: false };
         if (workspaceId) query.workspaceId = workspaceId;
-        if (approved) query.isApproved = approved === 'true';
 
-        const halls = await Hall.find(query);
-        res.status(200).json({ success: true, data: halls });
+       const [halls, total] = await Promise.all([
+      Hall.find(filter)
+        .skip((page - 1) * limit)
+        .limit(Number(limit)),
+      Hall.countDocuments(filter)
+    ]);
+
+    res.json({
+      halls,
+      total,
+      totalPages: Math.ceil(total / limit),
+      currentPage: Number(page)
+    });
+
     } catch (error) {
         console.error(error);
         res.status(500).json({ success: false, message: 'Failed to fetch halls', error: error.message });
@@ -267,3 +288,44 @@ export const updateHallPUT = async (req, res) => {
         res.status(500).json({ error: 'Failed to update hall' });
     }
 }
+
+
+export const activateHall = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const hall = await Hall.findById(id);
+    if (!hall) return res.status(404).json({ error: "Hall not found" });
+
+    hall.isActive = true;
+    await hall.save();
+
+    res.status(200).json({ 
+      message: "Hall activated successfully",
+      hall
+    });
+  } catch (error) {
+    console.error("Error activating hall:", error);
+    res.status(500).json({ error: "Failed to activate hall" });
+  }
+};
+
+export const deactivateHall = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const hall = await Hall.findById(id);
+    if (!hall) return res.status(404).json({ error: "Hall not found" });
+
+    hall.isActive = false;
+    await hall.save();
+
+    res.status(200).json({ 
+      message: "Hall deactivated successfully",
+      hall
+    });
+  } catch (error) {
+    console.error("Error deactivating hall:", error);
+    res.status(500).json({ error: "Failed to deactivate hall" });
+  }
+};

@@ -65,8 +65,9 @@ export const createFood = async (req, res) => {
 };
 
 export const getFoods = async (req, res) => {
+  const { page = 1, limit = 10, active } = req.query;
   try {
-    let filter = {};
+    const filter = {};
 
 
     if (req.user.role !== 'superadmin') {
@@ -77,7 +78,7 @@ export const getFoods = async (req, res) => {
       }
     }
 
-
+if (active === 'false') filter.isActive = false;
     if (req.query.menuId) filter.menuId = req.query.menuId;
     if (req.query.workspaceId) filter.workspaceId = req.query.workspaceId;
 
@@ -299,6 +300,30 @@ export const createMenu = async (req, res) => {
   }
 };
 
+
+export const sanitizeDescription = (req, res, next) => {
+  if (req.body.description) {
+    req.body.description = sanitizeHtml(req.body.description, {
+      allowedTags: ['b', 'i', 'u', 'em', 'strong', 'p', 'br', 'ul', 'ol', 'li', 'a'],
+      allowedAttributes: {
+        'a': ['href', 'target', 'rel'],
+      },
+      allowedSchemes: ['http', 'https', 'mailto'],
+      transformTags: {
+        'a': (tagName, attribs) => ({
+          tagName: 'a',
+          attribs: {
+            href: attribs.href,
+            target: '_blank',
+            rel: 'noopener noreferrer'
+          }
+        })
+      }
+    });
+  }
+  next();
+};
+
 export const getMenus = async (req, res) => {
   const {workspaceId} = req.query;
   try {
@@ -383,5 +408,26 @@ export const deleteMenu = async (req, res) => {
   } catch (error) {
     console.error("Error deleting menu:", error);
     res.status(500).json({ error: "Failed to delete menu" });
+  }
+};
+export const activateFood = async (req, res) => {
+  try {
+    const food = await Food.findById(req.params.id);
+    food.isActive = true;
+    await food.save();
+    res.json({ message: 'Food activated', food });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const deactivateFood = async (req, res) => {
+  try {
+    const food = await Food.findById(req.params.id);
+    food.isActive = false;
+    await food.save();
+    res.json({ message: 'Food deactivated', food });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 };

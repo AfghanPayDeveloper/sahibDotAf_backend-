@@ -14,7 +14,7 @@ import mainSLiderRoutes from './mainSliderRoutes.js';
 import notificationRouter from './notificationRoutes.js';
 import workspaceRoutes1 from './workspaceRoutes1.js'
 import chatRouter from './chatRoutes.js';
-
+import mainSlider from './mainSlider.js';
 const router = express.Router();
 
 
@@ -31,6 +31,7 @@ router.use('/room', roomRoutes);
 router.use('/hall', hallRoutes);
 router.use('/views', viewRoutes);
 router.use('/', mainSLiderRoutes);
+router.use('/mainSlider', mainSlider);
 router.use('/chat', chatRouter);
 router.use('/notifications', notificationRouter);
 

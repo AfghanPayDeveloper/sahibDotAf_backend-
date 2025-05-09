@@ -16,6 +16,7 @@ import {
   updateFood,
   updateMenu,
 } from "../controllers/foodController.js";
+import { sanitizeDescription } from "../utils/sanitizer.js";
 
 const router = express.Router();
 const uploadsDir = path.join(process.cwd(), "uploads");
@@ -42,11 +43,11 @@ const upload = multer({
 
 router.use(authenticate);
 
-router.post("/", upload.single("image"), createFood);
+router.post("/", upload.single("image"), sanitizeDescription, createFood);
 
 router.get("/", getFoods);
 
-router.patch("/:id", upload.single("image"), updateFood);
+router.patch("/:id", upload.single("image"), sanitizeDescription, updateFood);
 
 router.patch("/:id/approve", approveFood);
 

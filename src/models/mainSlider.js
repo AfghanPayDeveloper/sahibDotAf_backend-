@@ -1,5 +1,3 @@
-
-
 import mongoose from 'mongoose';
 
 const mainSliderSchema = new mongoose.Schema(
@@ -12,9 +10,13 @@ const mainSliderSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
   },
   { timestamps: true }
 );
 
-const MainSLider = mongoose.model('MainSlider', mainSliderSchema);
-export default MainSLider;
+const MainSlider = mongoose.model('MainSlider', mainSliderSchema);
+export default MainSlider;

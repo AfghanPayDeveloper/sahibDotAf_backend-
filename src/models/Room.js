@@ -10,10 +10,28 @@ const roomSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    newPrice: {
+      type: Number,
+      // required: true,
+    },
+    isActive: { 
+    type: Boolean, 
+    default: true 
+  },
+  isApproved: { 
+    type: Boolean, 
+    default: false 
+  },
     roomImages: [{ type: String }],
     description: {
       type: String,
-      required: true,
+      validate: {
+        validator: function(value) {
+          const stripped = value.replace(/<[^>]+>/g, '').trim();
+          return stripped.length >= 2 && stripped.length <= 5000;
+        },
+        message: 'Description must contain between 20 and 5000 characters (after removing HTML tags)'
+      }
     },
     workspaceId: {
       type: mongoose.Schema.Types.ObjectId,

@@ -9,7 +9,7 @@ const ProductSchema = new mongoose.Schema(
     oldPrice: { type: Number },
     newPrice: { 
       type: Number, 
-      required: true,
+      // required: true,
       validate: {
         validator: function(value) {
           return this.oldPrice ? value < this.oldPrice : true;  
@@ -17,6 +17,10 @@ const ProductSchema = new mongoose.Schema(
         message: 'New price must be less than old price.',
       }
     },
+      isActive: { 
+    type: Boolean, 
+    default: true 
+  },
     description: {
       type: String,
       validate: {

@@ -19,6 +19,7 @@ import winston from "winston";
 import http from "http";
 import errorHandler from "./middleware/errorMiddleware.js";
 import setupSocket, { userSockets } from "./utils/socket.js";
+import { check } from "express-validator";
 
 dotenv.config();
 connectDB();
@@ -170,11 +171,11 @@ io.on("connection", (socket) => {
 
 const PORT = process.env.PORT || 8080;
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+  console.log(`🚀 👍 Server running on port http://localhost:${PORT}/api`); 
+}); 
 
 process.on("SIGTERM", async () => {
-  console.log("SIGTERM signal received: closing server...");
+  console.log("SIGTERM signal received: closing server..."); 
   server.close(async () => {
     await redisClient.quit();
     console.log("Server closed.");

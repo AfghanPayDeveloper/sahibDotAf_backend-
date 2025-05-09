@@ -8,6 +8,7 @@ import { validateObjectId } from "../middleware/ValidateObjectId.js";
 import {
   authenticateToken as authenticate,
   authorizeRole,
+  optionalAuthenticate,
 } from "../middleware/auth.js";
 import path from "path";
 import fs from "fs";
@@ -26,6 +27,7 @@ import {
   getProductCategories,
   updateSubCategory,
   getProducts,
+  deactivateProduct,
   deleteCategory,
   getProductSubCategories,
   unApproveProduct,
@@ -64,8 +66,12 @@ const deleteFiles = (files) => {
   });
 };
 
-router.get("/", getProducts);
-
+router.get("/category", optionalAuthenticate, getProductCategories);
+router.get("/", optionalAuthenticate, getProducts);
+router.get('/search',  optionalAuthenticate, searchProducts);
+router.get("/subcategory", optionalAuthenticate, getProductSubCategories);
+router.get("/all", optionalAuthenticate,  getAllProducts);
+router.get('/:id', optionalAuthenticate, validateObjectId, getProductById);
 router.use(authenticate);
 
 router.post(
@@ -117,7 +123,7 @@ router.put(
   upload.single('image'),
   updateSubCategory
 );
-router.get("/category", getProductCategories);
+
 
 router.post(
   "/subcategory",
@@ -125,15 +131,13 @@ router.post(
   createProductSubCategory
 );
 
-router.get('/search', authenticate, searchProducts);
-router.get("/subcategory", getProductSubCategories);
-router.get("/all",  getAllProducts);
-router.get('/:id', validateObjectId, getProductById);
+
 
 
 // router.get("/all", authorizeRole("superadmin"), getAllProducts);
 
-router.patch("/:id/activate", activateProduct);
+router.patch("/:id/activate",  activateProduct);
+router.patch("/:id/deactivate",  deactivateProduct);
 
 // router.delete("/:id", authorizeRole("superadmin"), async (req, res) => {
 //   const { id } = req.params;

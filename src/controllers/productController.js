@@ -17,22 +17,32 @@ import path from "path";
 import fs from "fs";
 
 export const getProducts = async (req, res) => {
-  const { workspaceId, approved, categoryId, subcategoryId, minPrice, maxPrice } = req.query;
+  const { workspaceId, approved, categoryId, subcategoryId, minPrice, maxPrice, page = 1, limit = 10, search } = req.query;
   const userRole = req.user?.role;
 
   try {
     const filter = { workspaceId };
-   
-    if (userRole !== "superadmin") {
-      if (!workspaceId) {
-        return res
-          .status(400)
-          .json({ error: "Workspace ID is required for non-superadmin users" });
-      }
-      filter.workspaceId = workspaceId;
-    }
-    if (approved === "true") {
+
+    
+ if (!userRole) {
       filter.isApproved = true;
+      filter.isActive = true;
+    }
+    else {
+      if (userRole !== "superadmin" && !workspaceId) {
+        return res.status(400).json({ 
+          error: "Workspace ID is required for non-superadmin users" 
+        });
+      }
+      if (workspaceId) filter.workspaceId = workspaceId;
+      if (approved === "true") filter.isApproved = true;
+    }
+
+    if (search) {
+      filter.$or = [
+        { productName: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } }
+      ];
     }
     if (categoryId)    filter.categoryId    = categoryId;
     if (subcategoryId) filter.subcategoryId = subcategoryId;
@@ -43,21 +53,31 @@ export const getProducts = async (req, res) => {
       if (minPrice) filter.newPrice.$gte = Number(minPrice);
       if (maxPrice) filter.newPrice.$lte = Number(maxPrice);
     }
-    const products = await Product.find(filter);
+ 
+    const [products, total] = await Promise.all([
+      Product.find(filter)
+        .skip((page - 1) * limit)
+        .limit(Number(limit)),
+      Product.countDocuments(filter)
+    ]);
 
     const formattedProducts = products.map((product) => ({
       ...product.toObject(),
       status: product.isApproved ? "approved" : "pending",
     }));
 
-    res.json({ products: formattedProducts });
+  
+    res.json({ 
+      products: formattedProducts,
+      total,
+      totalPages: Math.ceil(total / limit),
+      currentPage: Number(page)
+    });
   } catch (error) {
     console.error("Error fetching products:", error);
     res.status(500).json({ error: "Failed to retrieve products" });
   }
 };
-
-
 
 
 
@@ -105,7 +125,7 @@ export const createProduct = async (req, res) => {
     description,
   } = req.body;
 
-  if (!workspaceId || !categoryId || !productName || !newPrice) {
+  if (!workspaceId || !categoryId || !productName ) {
     return res.status(400).json({
       error:
         "Required fields are missing: workspaceId, categoryId, productName, or newPrice.",
@@ -286,13 +306,17 @@ export const deleteProduct = async (req, res) => {
 
 export const getProductById = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id)
-    .populate('categoryId', 'name')
-    .populate('subcategoryId', 'name')
-    .populate({
-      path: 'workspaceId',
-      select: 'name address userId whatsappNumber' 
-    });
+    const product = await Product.findByIdAndUpdate(
+      req.params.id,
+      { $inc: { viewCount: 1 } }, 
+      { new: true }
+    )
+      .populate('categoryId', 'name')
+      .populate('subcategoryId', 'name')
+      .populate({
+        path: 'workspaceId',
+        select: 'name address userId whatsappNumber' 
+      });
 
     if (!product) return res.status(404).json({ error: "Product not found" });
     
@@ -402,7 +426,7 @@ export const updateProduct = async (req, res) => {
     product.oldPrice = oldPrice;
     product.newPrice = newPrice;
     product.description = description;
-
+    product.isApproved = false;
     await product.save();
 
     const admin = await User.findOne({ role: "superadmin" });
@@ -657,11 +681,34 @@ export const activateProduct = async (req, res) => {
     product.isActive = true;
     await product.save();
 
-    res
-      .status(200)
-      .json({ message: "Product activated successfully", product });
+    res.status(200).json({ 
+      message: "Product activated successfully",
+      product
+    });
   } catch (error) {
     console.error("Error activating product:", error);
     res.status(500).json({ error: "Failed to activate product" });
+  }
+};
+
+export const deactivateProduct = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+
+    product.isActive = false;
+    await product.save();
+
+    res.status(200).json({ 
+      message: "Product deactivated successfully",
+      product
+    });
+  } catch (error) {
+    console.error("Error deactivating product:", error);
+    res.status(500).json({ error: "Failed to deactivate product" });
   }
 };

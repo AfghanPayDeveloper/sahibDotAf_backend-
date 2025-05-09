@@ -33,3 +33,19 @@ export const authorizeRole = (role) => (req, res, next) => {
   }
   next();
 };
+
+
+export const optionalAuthenticate = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      req.user = decoded;
+    } catch (error) {
+      console.error('Error verifying token:', error.message);
+    }
+  }
+  next();
+};
