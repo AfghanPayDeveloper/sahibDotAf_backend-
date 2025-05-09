@@ -317,6 +317,7 @@ export const getProductById = async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 };
+
 export const searchProducts = async (req, res) => {
   try {
     const { query, category } = req.query;
@@ -330,25 +331,51 @@ export const searchProducts = async (req, res) => {
     }
 
     if (category) {
-      const categoryObj = await Category.findOne({
-        name: { $regex: new RegExp(`^${category}$`, "i") },
-      });
+      const categoryObj = await Category.findOne(
+        { name: { $regex: `^${category}$`, $options: "i" } },
+        { _id: 1 }
+      );
+
       if (!categoryObj) {
         return res.json({ products: [] });
       }
+
       searchFilter.categoryId = categoryObj._id;
     }
 
-    const products = await Product.find(searchFilter)
-      .populate("categoryId", "name")
-      .populate("subcategoryId", "name");
+    // Step 1: Get latest 20
+    let latestProducts = await Product.find(searchFilter)
+      .sort({ createdAt: -1 })
+      .limit(20)
+      .populate("categoryId", "_id name")
+      .populate("subcategoryId", "_id name");
 
-    const formattedProducts = products.map((product) => ({
-      ...product.toObject(),
-      category: product.categoryId?.name,
-      subcategory: product.subcategoryId?.name,
-      status: product.isApproved ? "approved" : "pending",
-    }));
+    const latestIds = latestProducts.map((p) => p._id.toString());
+
+    // Step 2: If less than 20, get more (excluding already fetched)
+    let additionalProducts = [];
+    if (latestProducts.length < 10) {
+      additionalProducts = await Product.find({
+        ...searchFilter,
+        _id: { $nin: latestIds },
+      })
+        .limit(20 - latestProducts.length)
+        .populate("categoryId", "_id name")
+        .populate("subcategoryId", "_id name");
+    }
+
+    // Combine both
+    const allProducts = [...latestProducts, ...additionalProducts];
+
+    const formattedProducts = allProducts.map((product) => {
+      const obj = product.toObject();
+      return {
+        ...obj,
+        category: obj.categoryId?.name || null,
+        subcategory: obj.subcategoryId?.name || null,
+        status: obj.isApproved ? "approved" : "pending",
+      };
+    });
 
     res.json({ products: formattedProducts });
   } catch (error) {
@@ -356,6 +383,10 @@ export const searchProducts = async (req, res) => {
     res.status(500).json({ error: "Failed to perform search" });
   }
 };
+
+
+
+
 
 export const updateProduct = async (req, res) => {
   const { id } = req.params;
@@ -532,8 +563,8 @@ export const getProductCategories = async (req, res) => {
   const { query } = req.query;
   const filter = query
     ? {
-        name: { $regex: query, $options: "i" },
-      }
+      name: { $regex: query, $options: "i" },
+    }
     : {};
 
   try {
@@ -665,8 +696,8 @@ export const getAllProducts = async (req, res) => {
   const { query } = req.query;
   const filter = query
     ? {
-        productName: { $regex: query, $options: "i" },
-      }
+      productName: { $regex: query, $options: "i" },
+    }
     : {};
 
   const skip = (page - 1) * limit;
