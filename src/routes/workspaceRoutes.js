@@ -1,5 +1,6 @@
 import express from "express";
 import multer from "multer";
+import { sanitizeDescription } from '../controllers/workspaceController.js';
 import { authenticateToken } from "../middleware/auth.js";
 import {
   createWorkspace,
@@ -48,6 +49,7 @@ router.post(
     { name: "images", maxCount: 10 },
     { name: "certificationFile", maxCount: 1 },
   ]),
+   sanitizeDescription,
   createWorkspace
 );
 
@@ -57,6 +59,7 @@ router.put(
     { name: "images", maxCount: 10 },
     { name: "certificationFile", maxCount: 1 },
   ]),
+  sanitizeDescription,
   updateWorkspace
 );
 

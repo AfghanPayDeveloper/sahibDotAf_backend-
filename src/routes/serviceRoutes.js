@@ -4,6 +4,7 @@ import Service from '../models/Service.js';
 import { authenticateToken as authenticate } from '../middleware/auth.js';
 import path from 'path';
 import fs from 'fs';
+import { sanitizeDescription } from '../utils/sanitizer.js';
 
 const router = express.Router();
 const uploadsDir = path.join(process.cwd(), 'uploads');
@@ -38,7 +39,7 @@ const deleteFiles = (files) => {
 };
 
 
-router.post('/', authenticate, upload.fields([
+router.post('/', authenticate, sanitizeDescription, upload.fields([
   { name: 'serviceThumbnailImage', maxCount: 1 },
   { name: 'serviceImages', maxCount: 5 },
 ]), async (req, res) => {
@@ -138,7 +139,7 @@ router.patch('/:id/approve', authenticate, async (req, res) => {
 
 
 
-router.put('/:id', authenticate, upload.fields([{ name: 'serviceThumbnailImage', maxCount: 1 }, { name: 'serviceImages', maxCount: 5 }]), async (req, res) => {
+router.put('/:id', authenticate, sanitizeDescription, upload.fields([{ name: 'serviceThumbnailImage', maxCount: 1 }, { name: 'serviceImages', maxCount: 5 }]), async (req, res) => {
   const { id } = req.params;
   const { workspaceId,   serviceName,  serviceDescription, deletedServiceImages } = req.body;
 

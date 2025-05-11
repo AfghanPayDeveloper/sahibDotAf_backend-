@@ -6,8 +6,15 @@ const ServiceSchema = new mongoose.Schema(
     serviceName: { type: String, required: true, trim: true, maxlength: 100 },
     serviceDescription: { 
       type: String,
-      required: true 
+      validate: {
+        validator: function(value) {
+          const stripped = value.replace(/<[^>]+>/g, '').trim();
+          return stripped.length >= 2 && stripped.length <= 5000;
+        },
+        message: 'Description must contain between 20 and 5000 characters (after removing HTML tags)'
+      }
     },
+
     serviceThumbnailImage: { 
       type: String, 
     //   validate: { 
@@ -22,7 +29,11 @@ const ServiceSchema = new mongoose.Schema(
     //     message: 'All service images must have valid URLs',
     //   },
     },
-    isApproved: { type: Boolean, default: false },
+
+   isActive: { type: Boolean, default: true },
+  isApproved: { type: Boolean, default: false },
+  viewCount: { type: Number, default: 0 },
+  status: { type: String, enum: ['pending', 'approved'], default: 'pending' },
     status: { type: Boolean, default: false },
     isDeleted: { type: Boolean, default: false },
   },

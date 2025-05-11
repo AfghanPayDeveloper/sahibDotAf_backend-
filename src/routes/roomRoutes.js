@@ -4,6 +4,7 @@ import { authenticateToken as authenticate } from '../middleware/auth.js';
 import path from 'path';
 import fs from 'fs';
 import { createRoom, deleteRoom, getAllRooms, updateRoom, updateRoomPUT } from '../controllers/roomControllers.js';
+import { sanitizeDescription } from '../utils/sanitizer.js';
 
 const router = express.Router();
 const uploadsDir = path.join(process.cwd(), 'uploads');
@@ -33,6 +34,7 @@ router.post(
   '/',
   authenticate,
   upload.fields([{ name: 'roomThumbnailImage', maxCount: 1 }, { name: 'roomImages', maxCount: 5 }]),
+  sanitizeDescription,
   createRoom
 );
 
@@ -51,6 +53,7 @@ router.put('/:id', authenticate,
     { name: 'roomThumbnailImage', maxCount: 1 },
     { name: 'roomImages', maxCount: 5 }
   ]),
+  sanitizeDescription,
   updateRoomPUT
 );
 
