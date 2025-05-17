@@ -4,7 +4,7 @@ import Notification from "../models/Notification.js";
 import Product from "../models/Product.js";
 import User from "../models/User.js";
 import sendNotification from "../utils/sendNotification.js";
-import sanitizeHtml from 'sanitize-html';
+import sanitizeHtml from "sanitize-html";
 import express from "express";
 import multer from "multer";
 import Category from "../models/Category.js";
@@ -15,23 +15,32 @@ import {
 } from "../middleware/auth.js";
 import path from "path";
 import fs from "fs";
+import Favorite from "../models/Favorite.js";
 
 export const getProducts = async (req, res) => {
-  const { workspaceId, approved, categoryId, subcategoryId, minPrice, maxPrice, page = 1, limit = 10, search } = req.query;
+  const {
+    workspaceId,
+    approved,
+    categoryId,
+    subcategoryId,
+    minPrice,
+    maxPrice,
+    page = 1,
+    limit = 10,
+    search,
+  } = req.query;
   const userRole = req.user?.role;
 
   try {
     const filter = { workspaceId };
 
-    
- if (!userRole) {
+    if (!userRole) {
       filter.isApproved = true;
       filter.isActive = true;
-    }
-    else {
+    } else {
       if (userRole !== "superadmin" && !workspaceId) {
-        return res.status(400).json({ 
-          error: "Workspace ID is required for non-superadmin users" 
+        return res.status(400).json({
+          error: "Workspace ID is required for non-superadmin users",
         });
       }
       if (workspaceId) filter.workspaceId = workspaceId;
@@ -40,38 +49,44 @@ export const getProducts = async (req, res) => {
 
     if (search) {
       filter.$or = [
-        { productName: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
+        { productName: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
       ];
     }
-    if (categoryId)    filter.categoryId    = categoryId;
+    if (categoryId) filter.categoryId = categoryId;
     if (subcategoryId) filter.subcategoryId = subcategoryId;
-
 
     if (minPrice || maxPrice) {
       filter.newPrice = {};
       if (minPrice) filter.newPrice.$gte = Number(minPrice);
       if (maxPrice) filter.newPrice.$lte = Number(maxPrice);
     }
- 
+
     const [products, total] = await Promise.all([
       Product.find(filter)
         .skip((page - 1) * limit)
         .limit(Number(limit)),
-      Product.countDocuments(filter)
+      Product.countDocuments(filter),
     ]);
+    const productIds = products.map((p) => p._id);
+
+    const myFavorites = await Favorite.find({
+      itemId: { $in: productIds },
+      userId: req.user?.id,
+    });
+    const favItemsIds = myFavorites.map((f) => f.itemId);
 
     const formattedProducts = products.map((product) => ({
       ...product.toObject(),
       status: product.isApproved ? "approved" : "pending",
+      isFavorite: favItemsIds.includes(product._id),
     }));
 
-  
-    res.json({ 
+    res.json({
       products: formattedProducts,
       total,
       totalPages: Math.ceil(total / limit),
-      currentPage: Number(page)
+      currentPage: Number(page),
     });
   } catch (error) {
     console.error("Error fetching products:", error);
@@ -79,31 +94,40 @@ export const getProducts = async (req, res) => {
   }
 };
 
-
-
 export const sanitizeDescription = (req, res, next) => {
   if (req.body.description) {
     req.body.description = sanitizeHtml(req.body.description, {
-      allowedTags: ['b', 'i', 'u', 'em', 'strong', 'p', 'br', 'ul', 'ol', 'li', 'a'],
+      allowedTags: [
+        "b",
+        "i",
+        "u",
+        "em",
+        "strong",
+        "p",
+        "br",
+        "ul",
+        "ol",
+        "li",
+        "a",
+      ],
       allowedAttributes: {
-        'a': ['href', 'target', 'rel'],
+        a: ["href", "target", "rel"],
       },
-      allowedSchemes: ['http', 'https', 'mailto'],
+      allowedSchemes: ["http", "https", "mailto"],
       transformTags: {
-        'a': (tagName, attribs) => ({
-          tagName: 'a',
+        a: (tagName, attribs) => ({
+          tagName: "a",
           attribs: {
             href: attribs.href,
-            target: '_blank',
-            rel: 'noopener noreferrer'
-          }
-        })
-      }
+            target: "_blank",
+            rel: "noopener noreferrer",
+          },
+        }),
+      },
     });
   }
   next();
 };
-
 
 const deleteFiles = (files) => {
   files.forEach((file) => {
@@ -125,7 +149,7 @@ export const createProduct = async (req, res) => {
     description,
   } = req.body;
 
-  if (!workspaceId || !categoryId || !productName ) {
+  if (!workspaceId || !categoryId || !productName) {
     return res.status(400).json({
       error:
         "Required fields are missing: workspaceId, categoryId, productName, or newPrice.",
@@ -274,7 +298,7 @@ export const deleteProduct = async (req, res) => {
           title: `Product Deleted`,
           from: req.user.id,
           content: `(${product.productName}) has been Deleted by Sahib's Team`,
-          from: req.user.id
+          from: req.user.id,
         });
         await notification.save();
 
@@ -288,11 +312,14 @@ export const deleteProduct = async (req, res) => {
           title: `Product Deleted`,
           from: req.user.id,
           content: `${req.user.fullName} deleted product (${product.productName}).`,
-          from: req.user.id
+          from: req.user.id,
         });
         await notification.save();
 
-        sendNotification(admin._id, { ...notification.toJSON(), from: req.user });
+        sendNotification(admin._id, {
+          ...notification.toJSON(),
+          from: req.user,
+        });
       }
     }
 
@@ -303,23 +330,22 @@ export const deleteProduct = async (req, res) => {
   }
 };
 
-
 export const getProductById = async (req, res) => {
   try {
     const product = await Product.findByIdAndUpdate(
       req.params.id,
-      { $inc: { viewCount: 1 } }, 
+      { $inc: { viewCount: 1 } },
       { new: true }
     )
-      .populate('categoryId', 'name')
-      .populate('subcategoryId', 'name')
+      .populate("categoryId", "name")
+      .populate("subcategoryId", "name")
       .populate({
-        path: 'workspaceId',
-        select: 'name address userId whatsappNumber' 
+        path: "workspaceId",
+        select: "name address userId whatsappNumber",
       });
 
     if (!product) return res.status(404).json({ error: "Product not found" });
-    
+
     res.json({ product });
   } catch (error) {
     console.error("Error fetching product:", error);
@@ -331,17 +357,17 @@ export const searchProducts = async (req, res) => {
     const { query, category } = req.query;
     const searchFilter = {};
 
-
     if (query) {
       searchFilter.$or = [
-        { productName: { $regex: query, $options: 'i' } }, 
-        { description: { $regex: query, $options: 'i' } }
+        { productName: { $regex: query, $options: "i" } },
+        { description: { $regex: query, $options: "i" } },
       ];
     }
 
- 
     if (category) {
-      const categoryObj = await Category.findOne({ name: { $regex: new RegExp(`^${category}$`, 'i') } });
+      const categoryObj = await Category.findOne({
+        name: { $regex: new RegExp(`^${category}$`, "i") },
+      });
       if (!categoryObj) {
         return res.json({ products: [] });
       }
@@ -349,20 +375,20 @@ export const searchProducts = async (req, res) => {
     }
 
     const products = await Product.find(searchFilter)
-      .populate('categoryId', 'name')
-      .populate('subcategoryId', 'name');
+      .populate("categoryId", "name")
+      .populate("subcategoryId", "name");
 
-    const formattedProducts = products.map(product => ({
+    const formattedProducts = products.map((product) => ({
       ...product.toObject(),
       category: product.categoryId?.name,
       subcategory: product.subcategoryId?.name,
-      status: product.isApproved ? 'approved' : 'pending'
+      status: product.isApproved ? "approved" : "pending",
     }));
 
     res.json({ products: formattedProducts });
   } catch (error) {
-    console.error('Error searching products:', error);
-    res.status(500).json({ error: 'Failed to perform search' });
+    console.error("Error searching products:", error);
+    res.status(500).json({ error: "Failed to perform search" });
   }
 };
 
@@ -435,7 +461,7 @@ export const updateProduct = async (req, res) => {
         to: admin._id,
         title: `Product updated`,
         content: `${req.user.fullName} updated (${product.productName}).`,
-        from: req.user.id
+        from: req.user.id,
       });
       await notification.save();
 
@@ -457,9 +483,9 @@ export const createProductCategory = async (req, res) => {
   }
 
   try {
-    const newCategory = new Category({ 
+    const newCategory = new Category({
       name,
-      image: `/uploads/${req.file.filename}`
+      image: `/uploads/${req.file.filename}`,
     });
     await newCategory.save();
 
@@ -470,7 +496,7 @@ export const createProductCategory = async (req, res) => {
   } catch (error) {
     console.error("Error creating category:", error);
     if (req.file) {
-      const filePath = path.join(process.cwd(), 'uploads', req.file.filename);
+      const filePath = path.join(process.cwd(), "uploads", req.file.filename);
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
       }
@@ -478,7 +504,6 @@ export const createProductCategory = async (req, res) => {
     res.status(500).json({ error: "Failed to create category" });
   }
 };
-
 
 export const deleteCategory = async (req, res) => {
   const { id } = req.params;
@@ -488,7 +513,6 @@ export const deleteCategory = async (req, res) => {
     if (!category) {
       return res.status(404).json({ error: "Category not found" });
     }
-
 
     if (category.image) {
       const filePath = path.join(process.cwd(), category.image);
@@ -504,7 +528,6 @@ export const deleteCategory = async (req, res) => {
     res.status(500).json({ error: "Failed to delete category" });
   }
 };
-
 
 export const updateCategory = async (req, res) => {
   const { id } = req.params;
@@ -529,7 +552,9 @@ export const updateCategory = async (req, res) => {
     category.name = name || category.name;
     await category.save();
 
-    res.status(200).json({ message: "Category updated successfully", category });
+    res
+      .status(200)
+      .json({ message: "Category updated successfully", category });
   } catch (error) {
     console.error("Error updating category:", error);
     res.status(500).json({ error: "Failed to update category" });
@@ -546,23 +571,22 @@ export const getProductCategories = async (req, res) => {
   }
 };
 
-
 export const createProductSubCategory = async (req, res) => {
-  console.log('Received files:', req.file); 
-  console.log('Received body:', req.body);
+  console.log("Received files:", req.file);
+  console.log("Received body:", req.body);
   const { name, categoryId } = req.body;
 
   if (!name || !categoryId || !req.file) {
-    return res.status(400).json({ 
-      error: "Name, category ID, and image are required" 
+    return res.status(400).json({
+      error: "Name, category ID, and image are required",
     });
   }
 
   try {
-    const newSubCategory = new SubCategory({ 
+    const newSubCategory = new SubCategory({
       name,
       categoryId,
-      image: `/uploads/${req.file.filename}`
+      image: `/uploads/${req.file.filename}`,
     });
     await newSubCategory.save();
 
@@ -573,7 +597,7 @@ export const createProductSubCategory = async (req, res) => {
   } catch (error) {
     console.error("Error creating subcategory:", error);
     if (req.file) {
-      const filePath = path.join(process.cwd(), 'uploads', req.file.filename);
+      const filePath = path.join(process.cwd(), "uploads", req.file.filename);
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
       }
@@ -606,9 +630,9 @@ export const updateSubCategory = async (req, res) => {
     subCategory.categoryId = categoryId || subCategory.categoryId;
     await subCategory.save();
 
-    res.status(200).json({ 
-      message: "SubCategory updated successfully", 
-      subcategory: subCategory 
+    res.status(200).json({
+      message: "SubCategory updated successfully",
+      subcategory: subCategory,
     });
   } catch (error) {
     console.error("Error updating subcategory:", error);
@@ -657,17 +681,33 @@ export const getProductSubCategories = async (req, res) => {
 export const getAllProducts = async (req, res) => {
   try {
     const products = await Product.find()
-      .populate('categoryId', 'name')
-      .populate('subcategoryId', 'name')
-      .populate('workspaceId');
+      .populate("categoryId", "name")
+      .populate("subcategoryId", "name")
+      .populate("workspaceId");
 
-    res.json({ products });
+    const productIds = products.map((p) => p._id);
+
+    const myFavorites = await Favorite.find({
+      itemId: { $in: productIds },
+      userId: req.user?.id,
+    });
+    // console.log(myFavorites);
+    const favItemsIds = myFavorites.map((f) => f.itemId.toString());
+
+    const formattedProducts = products.map((product) => {
+      console.log(favItemsIds, product._id, req.user.id);
+      return {
+        ...product.toObject(),
+        isFavorite: favItemsIds.includes(product._id.toString()),
+      };
+    });
+
+    res.json({ products: formattedProducts });
   } catch (error) {
     console.error("Error fetching products:", error);
     res.status(500).json({ error: "Server error" });
   }
 };
-
 
 export const activateProduct = async (req, res) => {
   const { id } = req.params;
@@ -681,9 +721,9 @@ export const activateProduct = async (req, res) => {
     product.isActive = true;
     await product.save();
 
-    res.status(200).json({ 
+    res.status(200).json({
       message: "Product activated successfully",
-      product
+      product,
     });
   } catch (error) {
     console.error("Error activating product:", error);
@@ -703,9 +743,9 @@ export const deactivateProduct = async (req, res) => {
     product.isActive = false;
     await product.save();
 
-    res.status(200).json({ 
+    res.status(200).json({
       message: "Product deactivated successfully",
-      product
+      product,
     });
   } catch (error) {
     console.error("Error deactivating product:", error);
