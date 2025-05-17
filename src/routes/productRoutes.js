@@ -84,6 +84,8 @@ router.post(
   createProduct
 );
 
+
+
 router.patch("/:id/approve", authorizeRole("superadmin"), approveProduct);
 
 router.patch("/:id/unapprove", authorizeRole("superadmin"), unApproveProduct);
