@@ -1,3 +1,4 @@
+
 import express from "express";
 import path from "path";
 import authRoutes from "./authRoutes.js";
@@ -35,7 +36,9 @@ router.use("/mainSlider", mainSlider);
 router.use("/chat", chatRouter);
 router.use("/notifications", notificationRouter);
 
+
 router.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+
 
 router.get("/", async (req, res) => {
   res.status(200).json({ message: "Welcome  to the Backend of Sahib.af" });

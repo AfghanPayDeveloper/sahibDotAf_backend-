@@ -70,7 +70,7 @@ router.get("/category", optionalAuthenticate, getProductCategories);
 router.get("/", optionalAuthenticate, getProducts);
 router.get('/search',  optionalAuthenticate, searchProducts);
 router.get("/subcategory", optionalAuthenticate, getProductSubCategories);
-router.get("/all", optionalAuthenticate,  getAllProducts);
+router.get("/all", optionalAuthenticate,   getAllProducts);
 router.get('/:id', optionalAuthenticate, validateObjectId, getProductById);
 router.use(authenticate);
 
@@ -83,6 +83,8 @@ router.post(
   sanitizeDescription,
   createProduct
 );
+
+
 
 router.patch("/:id/approve", authorizeRole("superadmin"), approveProduct);
 
