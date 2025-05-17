@@ -5,14 +5,16 @@ import Product from "../models/Product.js";
 import User from "../models/User.js";
 import sendNotification from "../utils/sendNotification.js";
 import sanitizeHtml from "sanitize-html";
-import express from "express";
-import multer from "multer";
+
+
+
+
 import Category from "../models/Category.js";
 import SubCategory from "../models/SubCategory.js";
-import {
-  authenticateToken as authenticate,
-  authorizeRole,
-} from "../middleware/auth.js";
+
+
+
+
 import path from "path";
 import fs from "fs";
 import Favorite from "../models/Favorite.js";
