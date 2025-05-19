@@ -1,6 +1,7 @@
 import express from "express";
 import multer from "multer";
-import { authenticateToken } from "../middleware/auth.js";
+import { sanitizeDescription } from '../controllers/workspaceController.js';
+import { authenticateToken, optionalAuthenticate } from "../middleware/auth.js";
 import {
   createWorkspace,
   createWorkspaceGroup,
@@ -27,19 +28,24 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-router.use(authenticateToken);
+router.use(optionalAuthenticate);
 
 router.get("/", getWorkspaces);
 
 router.get("/workspaceGroups", getWorkspaceGroups);
 
+router.get("/:id", getWorkspaceById);
+
+router.get("/workspaceGroups/:id", getWorkspaceGroupById);
+
+router.use(authenticateToken);
+
 router.post("/workspaceGroups", createWorkspaceGroup);
 
-
 router.put("/workspaceGroups/:id", updateWorkspaceGroup);
+
 router.delete("/workspaceGroups/:id", deleteWorkspaceGroup);
 
-router.get("/:id", getWorkspaceById);
 router.delete("/:id", deleteWorkspace);
 
 router.post(
@@ -48,6 +54,7 @@ router.post(
     { name: "images", maxCount: 10 },
     { name: "certificationFile", maxCount: 1 },
   ]),
+   sanitizeDescription,
   createWorkspace
 );
 
@@ -57,9 +64,8 @@ router.put(
     { name: "images", maxCount: 10 },
     { name: "certificationFile", maxCount: 1 },
   ]),
+  sanitizeDescription,
   updateWorkspace
 );
-
-router.get("/workspaceGroups/:id", getWorkspaceGroupById);
 
 export default router;

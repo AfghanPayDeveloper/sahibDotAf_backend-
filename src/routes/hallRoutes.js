@@ -4,6 +4,7 @@ import { authenticateToken as authenticate } from '../middleware/auth.js';
 import path from 'path';
 import fs from 'fs';
 import { createHall, deleteHall, getHalls, updateHall, updateHallPUT } from '../controllers/hallController.js';
+import { sanitizeDescription } from '../utils/sanitizer.js';
 
 const router = express.Router();
 const uploadsDir = path.join(process.cwd(), 'uploads');
@@ -31,6 +32,7 @@ router.post(
   '/',
   authenticate,
   upload.fields([{ name: 'hallThumbnailImage', maxCount: 1 }, { name: 'hallImages', maxCount: 5 }]),
+  sanitizeDescription,
   createHall
 );
 
@@ -45,7 +47,7 @@ router.put('/:id', authenticate,
   upload.fields([
     { name: 'hallThumbnailImage', maxCount: 1 },
     { name: 'hallImages', maxCount: 5 }
-  ]), updateHallPUT
+  ]), sanitizeDescription, updateHallPUT
 );
 
 export default router;

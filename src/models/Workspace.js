@@ -62,12 +62,29 @@ const workspaceSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Country',
   },
+  categoryId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Category'
+  },
+  subcategoryId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'SubCategory'
+  },
   description: {
     type: String,
+    validate: {
+      validator: function(value) {
+        const stripped = value.replace(/<[^>]+>/g, '').trim();
+        return stripped.length >= 2 && stripped.length <= 5000;
+      },
+      message: 'Description must contain between 20 and 5000 characters (after removing HTML tags)'
+    }
   },
+
   certificationFile: {
     type: String,
   },
+  
   images: [{
     type: String,
   }],

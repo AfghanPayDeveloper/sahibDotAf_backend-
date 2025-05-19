@@ -157,20 +157,25 @@ export const getChats = async (req, res) => {
     const userId = req.user.id;
 
     try {
-        const chats = await Chat.find({ participants: userId })
+        const chats = await Chat.find({
+            participants: userId,
+            deletedFor: { $ne: userId }
+        })
             .populate('participants', 'fullName email profileImage status lastSeen')
             .populate('lastMessage')
 
         const formattedChats = chats.map(chat => {
             if (!chat.isGroup) {
                 const otherUser = chat.participants.find(p => p._id.toString() !== userId);
+              if (otherUser) {
                 return {
                     ...chat.toJSON(),
                     chatName: otherUser.fullName,
                     chatProfile: otherUser.profileImage
                 };
+              }
             }
-            return chat; // For group chats, keep as is or handle differently
+            return chat; 
         });
 
         res.status(200).json({ chats: formattedChats });
@@ -196,7 +201,7 @@ export const getChatMessages = async (req, res) => {
             return res.status(404).json({ error: 'Chat not found' });
         }
 
-        const messages = await Message.find({ chat: chatId, isDeleted: false })
+        const messages = await Message.find({ chat: chatId, deletedFor: { $ne: req.user.id } })
             .sort({ createdAt: 1 })
             .populate('sender', 'fullName email profileImage')
 
@@ -304,9 +309,45 @@ export const sendMessage = async (req, res) => {
             console.log(`${otherUser._id} is offline `, "💀💀💀");
         }
 
-        res.status(201).json({message: {...savedMessage.toJSON(), isYou: true}, chat: chatToSendMessage});
+        res.status(201).json({ message: { ...savedMessage.toJSON(), isYou: true }, chat: chatToSendMessage });
     } catch (error) {
         console.error('Error sending message:', error);
         res.status(500).json({ error: 'Failed to send message' });
     }
 }
+
+export const deleteChatForUser = async (req, res) => {
+  const userId = req.user.id;
+  const { chatId } = req.params;
+
+  try {
+    const chat = await Chat.findById(chatId);
+
+    if (!chat) {
+      return res.status(404).json({ error: "Chat not found" });
+    }
+
+    if (!chat.participants.includes(userId)) {
+      return res
+        .status(403)
+        .json({ error: "Not authorized to delete this chat" });
+    }
+
+    // Add user to deletedFor if not already present
+    if (!chat.deletedFor.includes(userId)) {
+      chat.deletedFor.push(userId);
+      chat.lastMessage = null;
+      await chat.save();
+
+      await Message.updateMany(
+        { chat: chatId },
+        { $addToSet: { deletedFor: userId } }
+      ); 
+    }
+
+    res.status(200).json({ message: "Chat deleted for user" });
+  } catch (error) {
+    console.error("Error deleting chat for user:", error);
+    res.status(500).json({ error: "Server error deleting chat" });
+  }
+};

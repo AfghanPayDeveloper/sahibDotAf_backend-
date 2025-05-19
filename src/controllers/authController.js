@@ -78,7 +78,7 @@ export const signupController = async (req, res) => {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const { fullName, email, password, role, purpose } = req.body;
+  const { fullName, email, password, role, purpose, termsAccepted } = req.body;
 
   try {
     const otp = generateOtp();
@@ -89,8 +89,9 @@ export const signupController = async (req, res) => {
       email,
       password: hashedPassword,
       role,
-      purpose: role === "seller" ? purpose : null, // Include purpose only for sellers
-      isVerified: false, // Ensure users are not verified initially
+      purpose: role === "seller" ? purpose : null,
+      isVerified: false,
+      termsAccepted,
     });
     await user.save();
     user.isVerified = false;
