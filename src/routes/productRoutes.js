@@ -162,6 +162,6 @@ router.patch("/:id/deactivate",  deactivateProduct);
 //     console.error("Error deleting product:", error);
 //     res.status(500).json({ error: "Failed to delete product" });
 //   }
-// });
+// }); 
 
 export default router;
