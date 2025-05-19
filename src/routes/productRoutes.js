@@ -141,28 +141,5 @@ router.post(
 router.patch("/:id/activate",  activateProduct);
 router.patch("/:id/deactivate",  deactivateProduct);
 
-// router.delete("/:id", authorizeRole("superadmin"), async (req, res) => {
-//   const { id } = req.params;
-
-//   try {
-//     const product = await Product.findById(id);
-//     if (!product) {
-//       return res.status(404).json({ error: "Product not found" });
-//     }
-
-//     const filesToDelete = [product.mainImage, ...product.galleryImages].filter(
-//       Boolean
-//     );
-//     deleteFiles(filesToDelete);
-
-//     await product.remove();
-
-//     res.status(200).json({ message: "Product deleted successfully" });
-//   } catch (error) {
-//     console.error("Error deleting product:", error);
-//     res.status(500).json({ error: "Failed to delete product" });
-//   }   
-
-// }); 
 
 export default router;
