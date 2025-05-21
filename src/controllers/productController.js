@@ -352,6 +352,7 @@ export const getProductById = async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 };
+
 export const searchProducts = async (req, res) => {
   try {
     const { query, category } = req.query;
@@ -365,25 +366,50 @@ export const searchProducts = async (req, res) => {
     }
 
     if (category) {
-      const categoryObj = await Category.findOne({
-        name: { $regex: new RegExp(`^${category}$`, "i") },
-      });
-      if (!categoryObj) {
-        return res.json({ products: [] });
-      }
-      searchFilter.categoryId = categoryObj._id;
+      // const categoryObj = await Category.findOne({
+      //   name: { $regex: new RegExp(`^${category}$`, "i") },
+      // });
+      // if (!categoryObj) {
+      //   return res.json({ products: [] });
+      // }
+
+      // searchFilter.categoryId = categoryObj._id;
+      searchFilter.categoryId = category;
     }
 
-    const products = await Product.find(searchFilter)
-      .populate("categoryId", "name")
-      .populate("subcategoryId", "name");
+    // Step 1: Get latest 20
+    let latestProducts = await Product.find(searchFilter)
+      .sort({ createdAt: -1 })
+      .limit(20)
+      .populate("categoryId", "_id name")
+      .populate("subcategoryId", "_id name");
 
-    const formattedProducts = products.map((product) => ({
-      ...product.toObject(),
-      category: product.categoryId?.name,
-      subcategory: product.subcategoryId?.name,
-      status: product.isApproved ? "approved" : "pending",
-    }));
+    const latestIds = latestProducts.map((p) => p._id.toString());
+
+    // Step 2: If less than 20, get more (excluding already fetched)
+    let additionalProducts = [];
+    if (latestProducts.length < 10) {
+      additionalProducts = await Product.find({
+        ...searchFilter,
+        _id: { $nin: latestIds },
+      })
+        .limit(20 - latestProducts.length)
+        .populate("categoryId", "_id name")
+        .populate("subcategoryId", "_id name");
+    }
+
+    // Combine both
+    const allProducts = [...latestProducts, ...additionalProducts];
+
+    const formattedProducts = allProducts.map((product) => {
+      const obj = product.toObject();
+      return {
+        ...obj,
+        category: obj.categoryId?.name || null,
+        subcategory: obj.subcategoryId?.name || null,
+        status: obj.isApproved ? "approved" : "pending",
+      };
+    });
 
     res.json({ products: formattedProducts });
   } catch (error) {
@@ -562,9 +588,22 @@ export const updateCategory = async (req, res) => {
 };
 
 export const getProductCategories = async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 20;
+  const { query } = req.query;
+  const filter = query
+    ? {
+        name: { $regex: query, $options: "i" },
+      }
+    : {};
+
   try {
-    const categories = await Category.find();
-    res.json({ categories });
+    const categories = await Category.find(filter)
+      .skip((page - 1) * page)
+      .limit(limit);
+    const total = await Product.countDocuments(filter);
+
+    res.json({ categories, total });
   } catch (error) {
     console.error("Error fetching categories:", error);
     res.status(500).json({ error: "Failed to retrieve categories" });
@@ -665,10 +704,13 @@ export const deleteSubCategory = async (req, res) => {
 };
 
 export const getProductSubCategories = async (req, res) => {
-  const { categoryId } = req.query;
+  const { categoryId, query } = req.query;
 
   try {
     const filter = categoryId ? { categoryId } : {};
+    if (query) {
+      filter.name = { $regex: query, $options: "i" };
+    }
     const subcategories = await SubCategory.find(filter);
 
     res.json({ subcategories });
@@ -679,13 +721,33 @@ export const getProductSubCategories = async (req, res) => {
 };
 
 export const getAllProducts = async (req, res) => {
-  const { page = 1, limit = 10, query } = req.query;
-  try {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 20;
+  const { query } = req.query;
+  const filter = query
+    ? {
+        productName: { $regex: query, $options: "i" },
+      }
+    : {};
 
-    const products = await Product.find()
-      .populate("categoryId", "name")
-      .populate("subcategoryId", "name")
-      .populate("workspaceId");
+  try {
+    const filter = {};
+    if (query) {
+      filter.$or = [
+        { productName: { $regex: query, $options: "i" } },
+        { description: { $regex: query, $options: "i" } },
+      ];
+    }
+
+    const [products, total] = await Promise.all([
+      Product.find(filter)
+        .populate("categoryId", "name")
+        .populate("subcategoryId", "name")
+        .populate("workspaceId")
+        .skip((page - 1) * limit)
+        .limit(Number(limit)),
+      Product.countDocuments(filter),
+    ]);
 
     const productIds = products.map((p) => p._id);
 
@@ -704,33 +766,13 @@ export const getAllProducts = async (req, res) => {
       };
     });
 
-    res.json({ products: formattedProducts });
-
-    const filter = {};
-    if (query) {
-      filter.$or = [
-        { productName: { $regex: query, $options: 'i' } },
-        { description: { $regex: query, $options: 'i' } }
-      ];
-    }
-
-    const [products, total] = await Promise.all([
-      Product.find(filter)
-        .populate('categoryId', 'name')
-        .populate('subcategoryId', 'name')
-        .populate('workspaceId')
-        .skip((page - 1) * limit)
-        .limit(Number(limit)),
-      Product.countDocuments(filter)
-    ]);
 
     res.json({
-      products,
+      products: formattedProducts ,
       total,
       totalPages: Math.ceil(total / limit),
-      currentPage: Number(page)
+      currentPage: Number(page),
     });
-
   } catch (error) {
     console.error("Error fetching products:", error);
     res.status(500).json({ error: "Server error" });
@@ -746,7 +788,7 @@ export const activateProduct = async (req, res) => {
       return res.status(404).json({ error: "Product not found" });
     }
 
-    product.isActive = true;
+    product.isActive = !product.isActive;
     await product.save();
 
     res.status(200).json({

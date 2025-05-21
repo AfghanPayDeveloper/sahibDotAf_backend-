@@ -34,6 +34,7 @@ const ProductSchema = new mongoose.Schema(
     viewCount: { type: Number, default: 0 },
     galleryImages: [{ type: String }],
     isApproved: { type: Boolean, default: false },
+    isActive: { type: Boolean, default: false },
     status: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now },
   },

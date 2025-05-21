@@ -31,8 +31,12 @@ export const getWorkspaceGroupById = async (req, res) => {
 };
 
 export const getWorkspaceGroups = async (req, res) => {
+  const { query } = req.query;
+
+  const filter = query ? { workspaceName: { $regex: query, $options: "i" } } : {};
+
   try {
-    const workspaceGroups = await WorkspaceGroup.find();
+    const workspaceGroups = await WorkspaceGroup.find(filter);
     if (!workspaceGroups || workspaceGroups.length === 0) {
       return res.status(404).json({ message: "No workspace groups found" });
     }
@@ -317,6 +321,18 @@ export const updateWorkspace = async (req, res) => {
       { new: true, runValidators: true }
     ).populate("workspaceGroupId userId provinceId districtId countryId");
 
+    const admin = await User.findOne({ role: "superadmin" });
+    if (admin) {
+      const notification = new Notification({
+        to: admin._id,
+        title: `Workspace Updated`,
+        content: `${req.user.fullName} updated workspace (${workspace.name}).`,
+        from: req.user.id,
+      });
+      await notification.save();
+
+      sendNotification(admin._id, { ...notification.toJSON(), from: req.user });
+    }
     res.status(200).json(updatedWorkspace);
   } catch (error) {
     console.error("Error updating workspace:", error);
