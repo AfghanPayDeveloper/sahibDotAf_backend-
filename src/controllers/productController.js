@@ -366,14 +366,15 @@ export const searchProducts = async (req, res) => {
     }
 
     if (category) {
-      const categoryObj = await Category.findOne({
-        name: { $regex: new RegExp(`^${category}$`, "i") },
-      });
-      if (!categoryObj) {
-        return res.json({ products: [] });
-      }
+      // const categoryObj = await Category.findOne({
+      //   name: { $regex: new RegExp(`^${category}$`, "i") },
+      // });
+      // if (!categoryObj) {
+      //   return res.json({ products: [] });
+      // }
 
-      searchFilter.categoryId = categoryObj._id;
+      // searchFilter.categoryId = categoryObj._id;
+      searchFilter.categoryId = category;
     }
 
     // Step 1: Get latest 20
