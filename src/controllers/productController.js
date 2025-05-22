@@ -5,17 +5,20 @@ import Product from "../models/Product.js";
 import User from "../models/User.js";
 import sendNotification from "../utils/sendNotification.js";
 import sanitizeHtml from "sanitize-html";
-import express from "express";
-import multer from "multer";
 import Category from "../models/Category.js";
 import SubCategory from "../models/SubCategory.js";
-import {
-  authenticateToken as authenticate,
-  authorizeRole,
-} from "../middleware/auth.js";
 import path from "path";
 import fs from "fs";
 import Favorite from "../models/Favorite.js";
+
+const deleteFiles = (files) => {
+  files.forEach((file) => {
+    const filePath = path.join(process.cwd(), file);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+  });
+};
 
 export const getProducts = async (req, res) => {
   const {
@@ -92,50 +95,6 @@ export const getProducts = async (req, res) => {
     console.error("Error fetching products:", error);
     res.status(500).json({ error: "Failed to retrieve products" });
   }
-};
-
-export const sanitizeDescription = (req, res, next) => {
-  if (req.body.description) {
-    req.body.description = sanitizeHtml(req.body.description, {
-      allowedTags: [
-        "b",
-        "i",
-        "u",
-        "em",
-        "strong",
-        "p",
-        "br",
-        "ul",
-        "ol",
-        "li",
-        "a",
-      ],
-      allowedAttributes: {
-        a: ["href", "target", "rel"],
-      },
-      allowedSchemes: ["http", "https", "mailto"],
-      transformTags: {
-        a: (tagName, attribs) => ({
-          tagName: "a",
-          attribs: {
-            href: attribs.href,
-            target: "_blank",
-            rel: "noopener noreferrer",
-          },
-        }),
-      },
-    });
-  }
-  next();
-};
-
-const deleteFiles = (files) => {
-  files.forEach((file) => {
-    const filePath = path.join(process.cwd(), file);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
-  });
 };
 
 export const createProduct = async (req, res) => {
@@ -539,6 +498,16 @@ export const deleteCategory = async (req, res) => {
     if (!category) {
       return res.status(404).json({ error: "Category not found" });
     }
+
+    const subcategories = await SubCategory.find({
+      categoryId: id,
+    });
+
+    if (subcategories.length > 0) {
+      return res.status(400).json({
+        error: "Cannot delete category with existing subcategories",
+      });
+    } 
 
     if (category.image) {
       const filePath = path.join(process.cwd(), category.image);

@@ -1,9 +1,5 @@
 import express from "express";
 import multer from "multer";
-import Product from "../models/Product.js";
-import Category from "../models/Category.js";
-import SubCategory from "../models/SubCategory.js";
-import { sanitizeDescription } from '../controllers/productController.js';
 import { validateObjectId } from "../middleware/ValidateObjectId.js";
 import {
   authenticateToken as authenticate,
@@ -33,6 +29,7 @@ import {
   unApproveProduct,
   updateProduct,
 } from "../controllers/productController.js";
+import { sanitizeDescription } from "../utils/sanitizer.js";
 
 const router = express.Router();
 const uploadsDir = path.join(process.cwd(), "uploads");
