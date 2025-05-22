@@ -142,7 +142,7 @@ export const getWorkspaceById1 = async (req, res) => {
   try {
     const workspaceId = req.params.id;
 
-    // Validate ObjectId format
+  
     if (!mongoose.Types.ObjectId.isValid(workspaceId)) {
       return res.status(400).json({ message: "Invalid workspace ID format" });
     }
@@ -181,7 +181,7 @@ export const getWorkspaceById1 = async (req, res) => {
       },
     };
 
-    // Sanitize response
+   
     delete workspace.__v;
     if (workspace.userId?.password) delete workspace.userId.password;
 
@@ -263,7 +263,7 @@ export const updateWorkspace = async (req, res) => {
   try {
     const { files, body } = req;
     
-    // Handle deleted images - ensure it's always an array
+
     let deletedImages = [];
     if (Array.isArray(body.deletedImages)) {
       deletedImages = body.deletedImages;
@@ -445,7 +445,7 @@ export const deleteWorkspaceGroup = async (req, res) => {
       return res.status(404).json({ message: "Workspace group not found" });
     }
 
-    // Optional: Check if workspaces exist under this group
+ 
     const relatedWorkspaces = await Workspace.find({ workspaceGroupId: id });
     if (relatedWorkspaces.length > 0) {
       return res.status(400).json({

@@ -679,11 +679,25 @@ export const getProductSubCategories = async (req, res) => {
 };
 
 export const getAllProducts = async (req, res) => {
+  const { page = 1, limit = 10, query } = req.query;
   try {
-    const products = await Product.find()
-      .populate("categoryId", "name")
-      .populate("subcategoryId", "name")
-      .populate("workspaceId");
+    const filter = {};
+    if (query) {
+      filter.$or = [
+        { productName: { $regex: query, $options: "i" } },
+        { description: { $regex: query, $options: "i" } },
+      ];
+    }
+
+    const [products, total] = await Promise.all([
+      Product.find(filter)
+        .populate("categoryId", "name")
+        .populate("subcategoryId", "name")
+        .populate("workspaceId")
+        .skip((page - 1) * limit)
+        .limit(Number(limit)),
+      Product.countDocuments(filter),
+    ]);
 
     const productIds = products.map((p) => p._id);
 
@@ -691,18 +705,21 @@ export const getAllProducts = async (req, res) => {
       itemId: { $in: productIds },
       userId: req.user?.id,
     });
-    // console.log(myFavorites);
     const favItemsIds = myFavorites.map((f) => f.itemId.toString());
 
     const formattedProducts = products.map((product) => {
-      console.log(favItemsIds, product._id, req.user.id);
       return {
         ...product.toObject(),
         isFavorite: favItemsIds.includes(product._id.toString()),
       };
     });
 
-    res.json({ products: formattedProducts });
+    res.json({
+      products: formattedProducts,
+      total,
+      totalPages: Math.ceil(total / limit),
+      currentPage: Number(page),
+    });
   } catch (error) {
     console.error("Error fetching products:", error);
     res.status(500).json({ error: "Server error" });

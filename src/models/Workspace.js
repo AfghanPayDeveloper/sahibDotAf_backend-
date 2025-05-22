@@ -66,6 +66,10 @@ const workspaceSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Category'
   },
+  subcategoryId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'SubCategory'
+  },
   description: {
     type: String,
     validate: {
@@ -80,14 +84,7 @@ const workspaceSchema = new mongoose.Schema({
   certificationFile: {
     type: String,
   },
-    isActive: { 
-    type: Boolean, 
-    default: true 
-  },
-  isApproved: { 
-    type: Boolean, 
-    default: false 
-  },
+  
   images: [{
     type: String,
   }],

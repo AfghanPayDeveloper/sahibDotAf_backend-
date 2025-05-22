@@ -1,4 +1,4 @@
-// createData.js
+
 
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
@@ -6,10 +6,10 @@ import Country from './models/Country.js';
 import Province from './models/Province.js';
 import District from './models/District.js';
 
-// Load environment variables
+
 dotenv.config();
 
-// Connect to MongoDB
+
 mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => {
     console.log('Connected to MongoDB');
@@ -21,40 +21,57 @@ mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopol
 
 const createData = async () => {
   try {
-    // Create or find the country
     let country = await Country.findOne({ code: 'AF' }); 
     if (!country) {
       country = new Country({
-        name: 'Afghanistan',
-        code: 'AF',
+      
       });
       await country.save();
       console.log('Country added:', country.name);
     }
 
+   
+    const provinces = [
+      { name: 'Herat', code: 'HR' },
+      { name: 'Kandahar', code: 'KD' },
+      { name: 'Balkh', code: 'BK' },
+      { name: 'Nangarhar', code: 'NG' }
+    ];
 
-    let province = await Province.findOne({ code: 'KA' }); 
-    if (!province) {
-      province = new Province({
-        name: 'Takhar',
-        code: 'TK',
-        country_id: country._id, 
-      });
-      await province.save();
-      console.log('Province added:', province.name);
+    const districts = [
+      { name: 'Guzara', code: 'GZ', provinceCode: 'HR' },
+      { name: 'Spin Boldak', code: 'SB', provinceCode: 'KD' },
+      { name: 'Mazar-i-Sharif', code: 'MZ', provinceCode: 'BK' },
+      { name: 'Jalalabad', code: 'JL', provinceCode: 'NG' }
+    ];
+
+
+    for (let prov of provinces) {
+      let province = await Province.findOne({ code: prov.code });
+      if (!province) {
+        province = new Province({
+          name: prov.name,
+          code: prov.code,
+          country_id: country._id,
+        });
+        await province.save();
+        console.log('Province added:', province.name);
+      }
     }
 
-
-    let district = await District.findOne({ code: 'DA' }); 
-    if (!district) {
-      district = new District({
-        name: 'Taloqan',
-        code: 'TL',
-        country_id: country._id, 
-        province_id: province._id, 
-      });
-      await district.save();
-      console.log('District added:', district.name);
+    for (let dist of districts) {
+      let province = await Province.findOne({ code: dist.provinceCode });
+      let district = await District.findOne({ code: dist.code });
+      if (!district && province) {
+        district = new District({
+          name: dist.name,
+          code: dist.code,
+          country_id: country._id,
+          province_id: province._id,
+        });
+        await district.save();
+        console.log('District added:', district.name);
+      }
     }
 
   } catch (error) {
@@ -65,3 +82,5 @@ const createData = async () => {
 };
 
 createData();
+
+

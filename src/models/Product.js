@@ -9,7 +9,6 @@ const ProductSchema = new mongoose.Schema(
     oldPrice: { type: Number },
     newPrice: { 
       type: Number, 
-      // required: true,
       validate: {
         validator: function(value) {
           return this.oldPrice ? value < this.oldPrice : true;  
