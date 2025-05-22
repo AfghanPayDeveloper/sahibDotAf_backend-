@@ -1,6 +1,5 @@
 import express from "express";
 import multer from "multer";
-import { sanitizeDescription } from '../controllers/workspaceController.js';
 import { authenticateToken, optionalAuthenticate } from "../middleware/auth.js";
 import {
   createWorkspace,
@@ -14,6 +13,7 @@ import {
   getWorkspaces,
   updateWorkspace,
 } from "../controllers/workspaceController.js";
+import { sanitizeDescription } from "../utils/sanitizer.js";
 
 const router = express.Router();
 
