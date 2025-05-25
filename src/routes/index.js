@@ -16,6 +16,7 @@ import workspaceRoutes1 from "./workspaceRoutes1.js";
 import chatRouter from "./chatRoutes.js";
 import mainSlider from "./mainSlider.js";
 import favoritesRouter from "./favoriteRoutes.js";
+import dashboardRouter from "./dashboard.js";
 const router = express.Router();
 
 router.use("/auth", authRoutes);
@@ -42,5 +43,6 @@ router.get("/", async (req, res) => {
 });
 
 router.use("/favorites", favoritesRouter);
+router.use("/dashboard", dashboardRouter);
 
 export default router;
