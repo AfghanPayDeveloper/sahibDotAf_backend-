@@ -108,7 +108,10 @@ router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
-    const service = await Service.findById(id);
+    const service = await Service.findById(id).populate({
+      path: "workspaceId",
+      populate: { path: "userId" },
+    });
 
     if (!service) {
       return res
