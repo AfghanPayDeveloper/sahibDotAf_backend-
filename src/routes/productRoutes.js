@@ -28,6 +28,7 @@ import {
   getProductSubCategories,
   unApproveProduct,
   updateProduct,
+  getMinMaxPrice,
 } from "../controllers/productController.js";
 import { sanitizeDescription } from "../utils/sanitizer.js";
 
@@ -63,6 +64,7 @@ const deleteFiles = (files) => {
   });
 };
 
+router.get("/min-max-price", getMinMaxPrice)
 router.get("/category", optionalAuthenticate, getProductCategories);
 router.get("/", optionalAuthenticate, getProducts);
 router.get('/search',  optionalAuthenticate, searchProducts);
