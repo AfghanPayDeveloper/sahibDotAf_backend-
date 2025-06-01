@@ -3,7 +3,7 @@ import multer from 'multer';
 import { authenticateToken as authenticate } from '../middleware/auth.js';
 import path from 'path';
 import fs from 'fs';
-import { createHall, deleteHall, getHalls, updateHall, updateHallPUT } from '../controllers/hallController.js';
+import { createHall, deleteHall, getHallById, getHalls, updateHall, updateHallPUT } from '../controllers/hallController.js';
 import { sanitizeDescription } from '../utils/sanitizer.js';
 
 const router = express.Router();
@@ -26,7 +26,7 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
-router.get('/', authenticate, getHalls);
+router.get('/', getHalls);
 
 router.post(
   '/',
@@ -35,6 +35,8 @@ router.post(
   sanitizeDescription,
   createHall
 );
+
+router.get('/:id', getHallById);
 
 router.delete('/:id', authenticate, deleteHall);
 

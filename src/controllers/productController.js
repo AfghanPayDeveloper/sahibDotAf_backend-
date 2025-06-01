@@ -781,3 +781,29 @@ export const deactivateProduct = async (req, res) => {
     res.status(500).json({ error: "Failed to deactivate product" });
   }
 };
+
+export const getMinMaxPrice = async (req, res) => {
+  try {
+    const result = await Product.aggregate([
+      {
+        $group: {
+          _id: null,
+          minPrice: { $min: "$newPrice" },
+          maxPrice: { $max: "$newPrice" },
+        },
+      },
+    ]);
+
+    if (result.length === 0) {
+      return res.json({ minPrice: null, maxPrice: null });
+    }
+
+    res.json({
+      minPrice: result[0].minPrice,
+      maxPrice: result[0].maxPrice,
+    });
+  } catch (error) {
+    console.error("Error getting min/max price:", error);
+    res.status(500).json({ error: "Failed to get min/max price" });
+  }
+}
