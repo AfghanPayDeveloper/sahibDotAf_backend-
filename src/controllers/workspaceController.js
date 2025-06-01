@@ -69,6 +69,27 @@ export const getWorkspaces = async (req, res) => {
     res.status(500).json({ message: "Error fetching workspaces", error });
   }
 };
+export const getWorkspacesPublic = async (req, res) => {
+  const { workspaceGroupId, userId, query } = req.query;
+  try {
+    const filter = {};
+    if (workspaceGroupId) {
+      filter.workspaceGroupId = workspaceGroupId;
+    }
+    if (userId) {
+      filter.userId = userId;
+    }
+    if (query) {
+      filter.name = { $regex: query, $options: "i" };
+    }
+    const workspaces = await Workspace.find(filter).populate(
+      "workspaceGroupId userId provinceId districtId countryId"
+    );
+    res.status(200).json(workspaces);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching workspaces", error });
+  }
+};
 
 
 export const getWorkspaceById = async (req, res) => {

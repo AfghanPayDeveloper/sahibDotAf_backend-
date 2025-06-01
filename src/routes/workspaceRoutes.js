@@ -12,6 +12,7 @@ import {
   getWorkspaceGroups,
   getWorkspaces,
   updateWorkspace,
+  getWorkspacesPublic,
 } from "../controllers/workspaceController.js";
 import { sanitizeDescription } from "../utils/sanitizer.js";
 
@@ -31,6 +32,7 @@ const upload = multer({ storage });
 router.use(optionalAuthenticate);
 
 router.get("/", getWorkspaces);
+router.get("/Public", getWorkspacesPublic)
 
 router.get("/workspaceGroups", getWorkspaceGroups);
 
