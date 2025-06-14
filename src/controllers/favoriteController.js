@@ -18,6 +18,7 @@ export const addFavorite = async (req, res) => {
     const favorite = new Favorite({ userId, itemId, itemModel });
     await favorite.save();
 
+    await favorite.populate("itemId");
     res.status(201).json({ message: "Favorite added successfully", favorite });
   } catch (error) {
     console.log(error)

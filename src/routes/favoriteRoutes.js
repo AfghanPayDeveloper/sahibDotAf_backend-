@@ -13,7 +13,7 @@ favoritesRouter.use(authenticate);
 favoritesRouter
   .route("/")
   .get(getFavoritesByUser)
-  .post(addFavorite)
+  .put(addFavorite)
   .delete(removeFavorite);
 
 export default favoritesRouter;
