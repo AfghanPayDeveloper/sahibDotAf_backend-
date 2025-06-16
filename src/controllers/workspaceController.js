@@ -6,6 +6,7 @@ import sendNotification from "../utils/sendNotification.js";
 import mongoose from "mongoose";
 import sanitizeHtml from "sanitize-html";
 import Favorite from "../models/Favorite.js";
+import removeFavoriteForDeletedItem from "../utils/removeFavorite.js";
 
 export const getWorkspaceGroupById = async (req, res) => {
   try {
@@ -69,6 +70,7 @@ export const getWorkspaces = async (req, res) => {
     res.status(500).json({ message: "Error fetching workspaces", error });
   }
 };
+
 export const getWorkspacesPublic = async (req, res) => {
   const { workspaceGroupId, userId, query } = req.query;
   try {
@@ -90,7 +92,6 @@ export const getWorkspacesPublic = async (req, res) => {
     res.status(500).json({ message: "Error fetching workspaces", error });
   }
 };
-
 
 export const getWorkspaceById = async (req, res) => {
   try {
@@ -384,6 +385,8 @@ export const deleteWorkspace = async (req, res) => {
     }
     const deletedWorkspace = await Workspace.findByIdAndDelete(req.params.id);
     const to = await User.findOne({ role: "superadmin" });
+
+    await removeFavoriteForDeletedItem(deletedWorkspace._id);
 
     const notification = new Notification({
       to: to?._id,

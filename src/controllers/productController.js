@@ -10,6 +10,7 @@ import SubCategory from "../models/SubCategory.js";
 import path from "path";
 import fs from "fs";
 import Favorite from "../models/Favorite.js";
+import removeFavoriteForDeletedItem from "../utils/removeFavorite.js";
 
 const deleteFiles = (files) => {
   files.forEach((file) => {
@@ -248,6 +249,8 @@ export const deleteProduct = async (req, res) => {
     deleteFiles(filesToDelete);
 
     await product.remove();
+
+    await removeFavoriteForDeletedItem(product._id);
 
     if (req.user.role === "superadmin") {
       const toUser = product.workspaceId.userId;
