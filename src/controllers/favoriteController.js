@@ -18,6 +18,7 @@ export const addFavorite = async (req, res) => {
     const favorite = new Favorite({ userId, itemId, itemModel });
     await favorite.save();
 
+    await favorite.populate("itemId");
     res.status(201).json({ message: "Favorite added successfully", favorite });
   } catch (error) {
     console.log(error)
@@ -33,13 +34,24 @@ export const getFavoritesByUser = async (req, res) => {
 
     const favorites = await Favorite.find({ userId }).populate("itemId");
 
-    res.status(200).json(favorites);
+    // Filter only items that exist, are active, and approved
+    const filteredFavorites = favorites.filter((favorite) => {
+      const item = favorite.itemId;
+      return (
+        item &&
+        item.isActive === true &&
+        item.isApproved === true
+      );
+    });
+
+    res.status(200).json(filteredFavorites);
   } catch (error) {
     res
       .status(500)
       .json({ message: "Failed to fetch favorites", error: error.message });
   }
 };
+
 
 export const removeFavorite = async (req, res) => {
   try {

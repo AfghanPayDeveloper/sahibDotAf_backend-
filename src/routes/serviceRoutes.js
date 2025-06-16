@@ -8,6 +8,7 @@ import {
 import path from "path";
 import fs from "fs";
 import { sanitizeDescription } from "../utils/sanitizer.js";
+import removeFavoriteForDeletedItem from "../utils/removeFavorite.js";
 
 const router = express.Router();
 const uploadsDir = path.join(process.cwd(), "uploads");
@@ -323,7 +324,7 @@ router.delete("/:id", authenticate, async (req, res) => {
 
     service.isDeleted = true;
     await service.save();
-
+    await removeFavoriteForDeletedItem(service._id)
     res
       .status(200)
       .json({ success: true, message: "Service deleted successfully" });
