@@ -810,3 +810,16 @@ export const getMinMaxPrice = async (req, res) => {
     res.status(500).json({ error: "Failed to get min/max price" });
   }
 }
+
+export const getTopViewedProducts = async (req, res) => {
+  try {
+    const products = await Product.find({ isApproved: true, isActive: true })
+      .sort({ viewCount: -1 })  // descending order
+      .limit(20);
+
+    res.status(200).json(products);
+  } catch (error) {
+    console.error('Error fetching top viewed products:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
