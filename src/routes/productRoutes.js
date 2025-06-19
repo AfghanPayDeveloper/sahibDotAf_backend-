@@ -29,6 +29,7 @@ import {
   unApproveProduct,
   updateProduct,
   getMinMaxPrice,
+  getTopViewedProducts,
 } from "../controllers/productController.js";
 import { sanitizeDescription } from "../utils/sanitizer.js";
 
@@ -70,6 +71,7 @@ router.get("/", optionalAuthenticate, getProducts);
 router.get('/search',  optionalAuthenticate, searchProducts);
 router.get("/subcategory", optionalAuthenticate, getProductSubCategories);
 router.get("/all", optionalAuthenticate,   getAllProducts);
+router.get('/most-viewed', getTopViewedProducts);
 router.get('/:id', optionalAuthenticate, validateObjectId, getProductById);
 router.use(authenticate);
 
