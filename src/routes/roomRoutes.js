@@ -3,7 +3,7 @@ import multer from 'multer';
 import { authenticateToken as authenticate } from '../middleware/auth.js';
 import path from 'path';
 import fs from 'fs';
-import { createRoom, deleteRoom, getAllRooms, updateRoom, updateRoomPUT } from '../controllers/roomControllers.js';
+import { approveRoom, createRoom, deleteRoom, getAllRooms, unapproveRoom, updateRoom, updateRoomPUT } from '../controllers/roomControllers.js';
 import { sanitizeDescription } from '../utils/sanitizer.js';
 
 const router = express.Router();
@@ -57,6 +57,10 @@ router.put('/:id', authenticate,
   updateRoomPUT
 );
 
+
+router.patch('/:roomId/approve', authenticate, approveRoom);
+
+router.patch('/:roomId/unapprove', authenticate, unapproveRoom);
 
 
 export default router;
