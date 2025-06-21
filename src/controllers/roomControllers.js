@@ -16,9 +16,9 @@ const deleteFiles = (files) => {
 };
 
 export const createRoom = async (req, res) => {
-    const { workspaceId, roomName, description } = req.body;
+    const { workspaceId, roomName, description, newPrice } = req.body;
 
-    if (!workspaceId || !roomName) {
+    if (!workspaceId || !roomName || !newPrice) {
         return res.status(400).json({ error: 'Required fields are missing: workspaceId roomName, or description.' });
     }
 
@@ -34,6 +34,7 @@ export const createRoom = async (req, res) => {
             roomThumbnailImage: `/uploads/${req.files['roomThumbnailImage'][0].filename}`,
             roomImages: req.files['roomImages'] ? req.files['roomImages'].map(file => `/uploads/${file.filename}`) : [],
             isApproved: false,
+            newPrice
         });
 
         await newRoom.save();
@@ -56,20 +57,39 @@ export const createRoom = async (req, res) => {
 }
 
 export const getAllRooms = async (req, res) => {
-    try {
-        const { workspaceId, approved } = req.query;
+  try {
+    const { workspaceId, approved, search, page = 1, limit = 10 } = req.query;
 
-        const query = { isDeleted: false };
-        if (workspaceId) query.workspaceId = workspaceId;
-        if (approved) query.isApproved = approved === 'true';
-
-        const rooms = await Room.find(query);
-        res.status(200).json({ success: true, data: rooms });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, message: 'Failed to fetch rooms', error: error.message });
+    const query = { isDeleted: false };
+    if (workspaceId) query.workspaceId = workspaceId;
+    if (approved) query.isApproved = approved === 'true';
+    if (search) {
+      query.roomName = { $regex: search, $options: 'i' }; // case-insensitive partial match
     }
-}
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const total = await Room.countDocuments(query);
+    const rooms = await Room.find(query)
+      .populate('workspaceId', 'name') // if needed
+      .skip(skip)
+      .limit(parseInt(limit))
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      data: rooms,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Failed to fetch rooms', error: error.message });
+  }
+};
 
 export const updateRoom = async (req, res) => {
     try {
@@ -254,3 +274,63 @@ export const updateRoomPUT = async (req, res) => {
         res.status(500).json({ error: 'Failed to update room' });
     }
 }
+
+export const approveRoom = async (req, res) => {
+  const { roomId } = req.params;
+
+  try {
+    const room = await Room.findById(roomId).populate('workspaceId');
+    if (!room) {
+      return res.status(404).json({ error: 'Room not found' });
+    }
+
+    room.isApproved = true;
+    await room.save();
+
+    // Notify room owner
+    const toUserId = room.workspaceId.userId?.toString();
+    const notification = new Notification({
+      to: toUserId,
+      title: "Room Approved",
+      content: `Your room "${room.roomName}" has been approved.`,
+      from: req.user.id
+    });
+    await notification.save();
+    sendNotification(toUserId, { ...notification.toJSON(), from: req.user });
+
+    res.status(200).json({ message: "Room approved successfully", room });
+  } catch (error) {
+    console.error("Error approving room:", error);
+    res.status(500).json({ error: "Failed to approve room" });
+  }
+};
+
+export const unapproveRoom = async (req, res) => {
+  const { roomId } = req.params;
+
+  try {
+    const room = await Room.findById(roomId).populate('workspaceId');
+    if (!room) {
+      return res.status(404).json({ error: 'Room not found' });
+    }
+
+    room.isApproved = false;
+    await room.save();
+
+    // Notify room owner
+    const toUserId = room.workspaceId.userId?.toString();
+    const notification = new Notification({
+      to: toUserId,
+      title: "Room Unapproved",
+      content: `Your room "${room.roomName}" has been unapproved.`,
+      from: req.user.id
+    });
+    await notification.save();
+    sendNotification(toUserId, { ...notification.toJSON(), from: req.user });
+
+    res.status(200).json({ message: "Room unapproved successfully", room });
+  } catch (error) {
+    console.error("Error unapproving room:", error);
+    res.status(500).json({ error: "Failed to unapprove room" });
+  }
+};
