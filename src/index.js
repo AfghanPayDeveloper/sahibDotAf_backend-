@@ -149,25 +149,7 @@ const logger = winston.createLogger({
 
 const server = http.createServer(app);
 
-const io = setupSocket(server);
-
-io.on("connection", (socket) => {
-  console.log("New socket connection:", socket.id);
-
-  // socket.on("sendMessage", ({ recipientId, message }) => {
-  //   console.log(`Received message for ${recipientId}: ${message}`);
-  //   const recipientSocket = onlineUsers.get(recipientId);
-  //   if (recipientSocket) {
-  //     recipientSocket.emit("receiveMessage", {
-  //       senderId: socket.userId,
-  //       message,
-  //     });
-  //     console.log(`Message sent to ${recipientId}`);
-  //   } else {
-  //     console.log(`User ${recipientId} is not online`);
-  //   }
-  // });
-});
+setupSocket(server);
 
 const PORT = process.env.PORT || 8080;
 server.listen(PORT, () => {
