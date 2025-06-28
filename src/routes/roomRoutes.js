@@ -1,6 +1,6 @@
 import express from 'express';
 import multer from 'multer';
-import { authenticateToken as authenticate } from '../middleware/auth.js';
+import { authenticateToken as authenticate, optionalAuthenticate } from '../middleware/auth.js';
 import path from 'path';
 import fs from 'fs';
 import { approveRoom, createRoom, deleteRoom, getAllRooms, unapproveRoom, updateRoom, updateRoomPUT } from '../controllers/roomControllers.js';
@@ -28,7 +28,7 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
-router.get('/', authenticate, getAllRooms);
+router.get('/', optionalAuthenticate, getAllRooms);
 
 router.post(
   '/',

@@ -51,8 +51,10 @@ export const getWorkspaceGroups = async (req, res) => {
 export const getWorkspaces = async (req, res) => {
   const { workspaceGroupId, userId, query } = req.query;
   try {
-    const filter =
-      req.user.role === "superadmin" ? {} : { userId: req.user.id };
+    const filter = {}
+    if (req.user && req.user.role === "superdmin") {
+      filter.userId = req.user.id
+    };
     if (workspaceGroupId) {
       filter.workspaceGroupId = workspaceGroupId;
     }
@@ -99,7 +101,7 @@ export const getWorkspaceById = async (req, res) => {
 
     const query = { _id: workspaceId };
 
-    if (req.user.role !== "superadmin") {
+    if (req.user && req.user?.role !== "superadmin") {
       query.userId = req.user.id;
     }
 
@@ -134,7 +136,7 @@ export const getWorkspaceById1 = async (req, res) => {
   try {
     const workspaceId = req.params.id;
 
-  
+
     if (!mongoose.Types.ObjectId.isValid(workspaceId)) {
       return res.status(400).json({ message: "Invalid workspace ID format" });
     }
@@ -173,7 +175,7 @@ export const getWorkspaceById1 = async (req, res) => {
       },
     };
 
-   
+
     delete workspace.__v;
     if (workspace.userId?.password) delete workspace.userId.password;
 
@@ -254,7 +256,7 @@ export const createWorkspace = async (req, res) => {
 export const updateWorkspace = async (req, res) => {
   try {
     const { files, body } = req;
-    
+
 
     let deletedImages = [];
     if (Array.isArray(body.deletedImages)) {
@@ -339,7 +341,7 @@ export const createWorkspaceGroup = async (req, res) => {
       return res.status(400).json({ message: "Workspace name is required" });
     }
 
-    const existingWorkspaceGroup = await WorkspaceGroup.find({ workspaceName });
+    const existingWorkspaceGroup = await WorkspaceGroup.findOne({ workspaceName });
     if (existingWorkspaceGroup) {
       return res.status(409).json({
         message: `Workspace group (${workspaceName}) already exists`,
@@ -451,7 +453,7 @@ export const deleteWorkspaceGroup = async (req, res) => {
       return res.status(404).json({ message: "Workspace group not found" });
     }
 
- 
+
     const relatedWorkspaces = await Workspace.find({ workspaceGroupId: id });
     if (relatedWorkspaces.length > 0) {
       return res.status(400).json({

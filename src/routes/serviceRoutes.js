@@ -85,7 +85,7 @@ router.post(
   }
 );
 
-router.get("/", authenticate, async (req, res) => {
+router.get("/", optionalAuthenticate, async (req, res) => {
   try {
     const { workspaceId, approved } = req.query;
 
