@@ -40,6 +40,7 @@ export const loginController = async (req, res) => {
       profileImage: user.profileImage,
       isActive: user.isActive,
       isVerified: user.isVerified,
+      isActive: user.isActive
     };
 
     if (!userData.isActive) {
@@ -171,6 +172,7 @@ function generateToken(user) {
       role: user.role,
       purpose: user.purpose,
       profileImage: user.profileImage,
+      isActive: user.isActive
     },
     process.env.JWT_SECRET,
     { expiresIn: "7days" }
